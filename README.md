@@ -1,12 +1,18 @@
 # Dr. Robotnik's Mean Bean Machine (Mega Drive) - Disassembly
 
-This is a work-in-progress disassembly of Dr. Robotnik's Mean Bean Machine for the Sega Mega Drive/Genesis.<br/> 
+This is a work-in-progress disassembly of Dr. Robotnik's Mean Bean Machine for the Sega Mega Drive/Sega Genesis.<br/> 
+
+
+## Crediting
+
+If you use this disassembly for any rom hacks, please can you put the following link in the README file: https://github.com/Scrambled-Beans/drmbm-md-disasm<br/>
+
 
 ## Building (Windows)
 
 1 - Download the repo.<br/>
 2 - Open "build config.asm" and adjust any settings (the default settings build a 100% USA Version).<br/>
-3 - Run "build (Windows).bat to build the rom.<br/>
+3 - Run "build (Windows).bat" to build the rom.<br/>
 4 - The built rom can be found in the "output" folder.<br/>
 
 ## Sprite Editing
@@ -29,12 +35,12 @@ Please do not submit an issue relating to ROM-Hacking the game. Instead, please 
 If you are interesting in contributing to the disassembly, please send an e-mail to scrambled-beans@outlook.com
 <br/>
 <br/>
-Do check the "researchers.txt" first to see what people are reseaching.<br/>
+Do check the "progress.txt" file first to see what is currently being updated.<br/>
 
 ## Disclaimer
 
 - Any and all content presented in this repository is presented for informational and educational purposes only.<br/>
 - Commercial usage is expressly prohibited.<br/>
 - Scramble Beans or any of the contributors do not claim ownership of any code in this repository.<br/>
-- You assume any and all responsibility for using this content responsibility.<br/>
+- You assume any and all responsibility for using this content.<br/>
 - Scramble Beans or any of the contributors do not claim any responsibility or warranty.<br/>
