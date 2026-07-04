@@ -1,4 +1,4 @@
-# Dr. Robotnik's Mean Bean Machine (16-Bit) - Disassembly
+# Dr. Robotnik's Mean Bean Machine (Mega Drive) - Disassembly
 
 This is a work-in-progress disassembly of Dr. Robotnik's Mean Bean Machine for the Sega Mega Drive/Genesis.<br/> 
 
