@@ -1,0 +1,7 @@
+List of what is currently being updated:
+
+RadioTails
+- Sprite Mappings.
+- Puyo1 Mappings.
+- Rename fix palettes.
+
