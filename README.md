@@ -3,6 +3,13 @@
 This is a work-in-progress disassembly of Dr. Robotnik's Mean Bean Machine for the Sega Mega Drive/Sega Genesis. 
 
 
+## Folder Structure (in progress)
+
+- header - folder - ASM files to edit the ROM's header information and vectors
+- tools - folder - Tools needed to buil the ROM.
+- build rom (Windows).bat - executable - Convenience batch script (Windows) to build the ROM
+
+
 ## Crediting
 
 If you use this disassembly for any rom hacks, please can you put the following link in the README file: https://github.com/Scrambled-Beans/drmbm-md-disasm
