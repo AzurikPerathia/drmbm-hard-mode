@@ -32,10 +32,12 @@ Please do not submit an issue relating to ROM-Hacking the game. Instead, please 
 
 ## Contributing
 
-If you are interesting in contributing to the disassembly, please send an e-mail to scrambled-beans@outlook.com
-<br/>
+If you are interesting in contributing to the disassembly, please send an to e-mail to: scrambled-beans@outlook.com or radiotailspuyo@outlook.com<br/>
 <br/>
 Do check the "progress.txt" file first to see what is currently being updated.<br/>
+<br/>
+Any updates that are being contributed will first have to be checked by RadioTails before they can be applied to this disassembly.
+
 
 ## Disclaimer
 
