@@ -3,6 +3,10 @@
 <p align="center"><strong>A configurable challenge expansion for the Sega Mega Drive / Genesis game</strong></p>
 
 <p align="center">
+  <strong>Hard Mode mod created by <a href="https://github.com/AzurikPerathia">AzurikPerathia</a></strong>
+</p>
+
+<p align="center">
   <a href="https://github.com/AzurikPerathia/drmbm-hard-mode/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/AzurikPerathia/drmbm-hard-mode?style=for-the-badge&amp;label=Latest%20Release&amp;color=dd3b3b"></a>
   <a href="#building-from-source"><img alt="Platform" src="https://img.shields.io/badge/Platform-Mega%20Drive%20%2F%20Genesis-1f6feb?style=for-the-badge"></a>
   <a href="#hard-mode"><img alt="Hard Mode" src="https://img.shields.io/badge/Hard%20Mode-Optional-f0a020?style=for-the-badge"></a>
@@ -106,6 +110,12 @@ The repository includes the required Windows build tools. The main assembler com
 Use [Flex2-Puyo](https://github.com/Nasina7/Flex2-Puyo/releases) to edit compatible sprite data. A work-in-progress editing project is available under `include/projects/Flex2-Puyo`.
 
 ## Credits and attribution
+
+### Hard Mode author
+
+- **[AzurikPerathia](https://github.com/AzurikPerathia)** — creator and author of the Hard Mode mod
+
+### Original disassembly
 
 This Hard Mode edition is based on the original
 [Dr. Robotnik's Mean Bean Machine disassembly](https://github.com/Scrambled-Beans/drmbm-md-disasm).
