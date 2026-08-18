@@ -1,6 +1,6 @@
-# Dr. Robotnik's Mean Bean Machine (Mega Drive) - Disassembly
+# Dr. Robotnik's Mean Bean Machine (Mega Drive) - Hard Mode
 
-This is a work-in-progress disassembly of Dr. Robotnik's Mean Bean Machine for the Sega Mega Drive/Sega Genesis. 
+This is a work-in-progress is hard mode of Dr. Robotnik's Mean Bean Machine for the Sega Mega Drive/Sega Genesis. 
 
 
 ## Folder Structure (in progress)
