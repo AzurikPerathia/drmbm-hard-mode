@@ -3,7 +3,7 @@
 <p align="center"><strong>A configurable challenge expansion for the Sega Mega Drive / Genesis game</strong></p>
 
 <p align="center">
-  <strong>Hard Mode mod created by <a href="https://github.com/AzurikPerathia">AzurikPerathia</a></strong>
+  <strong>Hard Mode mod created by <a href="https://github.com/AzurikPerathia">Azurik Perathia</a></strong>
 </p>
 
 <p align="center">
