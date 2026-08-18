@@ -37,6 +37,9 @@ Matches_15:				equ 8
 Sampling_ON:			equ $00
 Sampling_OFF:			equ $FF
 
+HardMode_OFF:			equ $00
+HardMode_ON:			equ $FF
+
 Turn_Left:				equ 1
 Turn_Right:				equ 2
 Turn_No:				equ 0

@@ -26,6 +26,14 @@ Default_Sampling macro Sampling
 
 ; --------------------------------------------------------------
 
+Default_HardMode macro enabled
+
+	move.b	#enabled, hard_mode			; Enhanced Hard Mode features
+
+	endm
+
+; --------------------------------------------------------------
+
 Default_1P macro A_1P, B_1P, C_1P
 
 	move.b	#A_1P, player_1_a				; Action for Button A (1P)

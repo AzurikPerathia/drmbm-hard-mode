@@ -424,8 +424,9 @@ player_2_a		rs.b	1
 player_2_b		rs.b	1
 player_2_c		rs.b	1
 disable_samples		rs.b	1
+hard_mode		rs.b	1
 
-			rs.b	$153
+			rs.b	$152
 byte_FFFE00		rs.b	$B0
 			rs.b	$150
 

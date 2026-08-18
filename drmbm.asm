@@ -3680,10 +3680,14 @@ loc_390E:
 
 
 PuyoLandEffects:
-	; The player's beans always use the heavy landing effect in every stage.
+	; Hard Mode gives the player the heavy landing effect in every stage.
+	tst.b	(hard_mode).l
+	beq.s	.CheckOriginalStages
 	tst.b	aPlayerID(a0)
 	beq.s	.Shake
-	; CPU opponents retain the original Frankly/Dragon-only behaviour.
+
+.CheckOriginalStages:
+	; Base game and CPU opponents retain the Frankly/Dragon-only behaviour.
 	cmpi.b	#OPP_FRANKLY,(opponent).l
 	beq.s	.Shake
 	cmpi.b	#OPP_DRAGON,(opponent).l
@@ -10212,8 +10216,9 @@ loc_7ACE:
 	lsl.b	#1,d0
 	ori.b	#1,d0
 	move.w	d0,(word_FF198C).l
-	; Preserve the player's exact current score when player 1 loses.
-	; A new game still clears it in InitTitleFlags as before.
+	; Hard Mode preserves the player's exact current score on defeat.
+	tst.b	(hard_mode).l
+	beq.s	.ResetCarriedScore
 	tst.b	$2A(a0)
 	bne.s	.ResetCarriedScore
 	move.l	$A(a0),(dword_FF195C).l
@@ -30388,10 +30393,14 @@ loc_12346:
 	move.w	d1,(a2)+
 	dbf	d0,loc_12346
 	; Roll one of three equally likely AI temperaments for this match.
+	tst.b	(hard_mode).l
+	beq.s	.BaseGame
 	move.w	#3,d0
 	jsr	(RandomBound).l
 	move.b	d0,(byte_FF1D4E+3).l
 	move.b	d0,(byte_FF1D58+3).l
+
+.BaseGame:
 	move.b	(level_mode).l,d0
 	andi.b	#3,d0
 	beq.w	loc_1235C
@@ -30614,6 +30623,13 @@ sub_12562:
 	move.b	(opponent).l,d0
 
 loc_12578:
+	tst.b	(hard_mode).l
+	beq.s	.LoadBaseAI
+	lea	(AI_HardChain).l,a2
+	movem.l	(sp)+,d0
+	rts
+
+.LoadBaseAI:
 	lsl.w	#2,d0
 	movea.l	off_12584(pc,d0.w),a2
 	movem.l	(sp)+,d0
@@ -30622,25 +30638,24 @@ loc_12578:
 
 ; ---------------------------------------------------------------------------
 off_12584: ; AI?
-	; Give every CPU opponent the boss-level evaluator and seven verified
-	; chain plans whose targets range from one to seven links.
-	dc.l AI_HardChain
-	dc.l AI_HardChain
-	dc.l AI_HardChain
-	dc.l AI_HardChain ; Arms
-	dc.l AI_HardChain
-	dc.l AI_HardChain
-	dc.l AI_HardChain
-	dc.l AI_HardChain
-	dc.l AI_HardChain
-	dc.l AI_HardChain
-	dc.l AI_HardChain
-	dc.l AI_HardChain ; Scratch
-	dc.l AI_HardChain ; Dr. Robotnik
-	dc.l AI_HardChain
-	dc.l AI_HardChain
-	dc.l AI_HardChain
+	dc.l unk_125C4
+	dc.l unk_125E4
+	dc.l unk_1260C
+	dc.l unk_125DC ; Arms
+	dc.l unk_125CC
+	dc.l unk_12614
+	dc.l unk_125FC
+	dc.l byte_125F4
+	dc.l byte_1261C
+	dc.l byte_12624
+	dc.l byte_1262C
+	dc.l byte_12634 ; Scratch
+	dc.l byte_1263C ; Dr. Robotnik
+	dc.l unk_125D4
+	dc.l unk_125EC
+	dc.l byte_12604
 
+; Hard Mode gives every CPU opponent the enhanced chain evaluator.
 AI_HardChain:
 	dc.b   0, 0, $FF, $24, $24, 0, 7, $83
 		
@@ -32061,8 +32076,12 @@ sub_12FAE:
 	bmi.w	locret_12FCA
 	tst.b	d3
 	bne.w	locret_12FCA
-	; Pick a new chain target immediately after the previous plan ends.
-	bra.w	loc_12FCC
+	tst.b	(hard_mode).l
+	bne.w	loc_12FCC
+	; Original game waits eight attempts before choosing another plan.
+	cmpi.b	#8,3(a6)
+	bcc.w	loc_12FCC
+	addq.b	#1,3(a6)
 
 locret_12FCA:
 	rts
@@ -32258,9 +32277,24 @@ loc_13124:
 
 loc_13142:
 	movem.l	a3,-(sp)
+	tst.b	(hard_mode).l
+	beq.s	.BasePlan
 	bsr.w	SelectRandomAIChainPlan
+	bra.s	.TryPlan
+
+.BasePlan:
+	clr.w	d0
+	move.b	6(a2),d0
+	jsr	(RandomBound).l
+	lsl.w	#2,d0
+	lea	(off_1317C).l,a3
+	movea.l	(a3,d0.w),a3
+
+.TryPlan:
 	bsr.w	sub_13006
 	bcc.w	loc_13168
+	tst.b	(hard_mode).l
+	beq.s	.PlanFailed
 	; If the ambitious layout is blocked by garbage or an uneven field,
 	; try progressively smaller plans elsewhere before using the old
 	; obstacle-clearing evaluator.
@@ -32273,6 +32307,8 @@ loc_13142:
 	lea	(AIChainPlan1).l,a3
 	bsr.w	sub_13006
 	bcc.w	loc_13168
+
+.PlanFailed:
 	movem.l	(sp)+,a3
 	clr.b	d3
 	rts
@@ -32313,21 +32349,30 @@ SelectRandomAIChainPlan:
 
 .Load:
 	lsl.w	#2,d0
-	movea.l	off_1317C(pc,d0.w),a3
+	movea.l	HardModeChainPlans(pc,d0.w),a3
 	rts
 
-off_1317C:	dc.l AIChainPlan1
+off_1317C:	dc.l byte_13226
+	dc.l byte_13232
+	dc.l byte_13240
+	dc.l byte_1324E
+	dc.l byte_131EA
+	dc.l byte_131F8
+	dc.l byte_13208
+	dc.l byte_13218
+	dc.l byte_131DA
+	dc.l byte_131CA
+	dc.l byte_131BA
+	dc.l byte_131AC
+
+HardModeChainPlans:
+	dc.l AIChainPlan1
 	dc.l AIChainPlan2
 	dc.l AIChainPlan3
 	dc.l AIChainPlan4
 	dc.l AIChainPlan5
 	dc.l AIChainPlan6
 	dc.l AIChainPlan7
-	dc.l byte_13218
-	dc.l byte_131DA
-	dc.l byte_131CA
-	dc.l byte_131BA
-	dc.l byte_131AC
 
 ; Each plan contains: required width/height, forced pair colours, then target
 ; column/rotation commands. The colour remapper randomizes their appearance.
@@ -44126,13 +44171,14 @@ OptStr_ButtonLeft:dc.w $A90
 	dc.b "    left:"
 	dc.b $FF
 	even
-OptionsStrings:	dc.w $A
+OptionsStrings:	dc.w $B
 	dc.l OptStr_Options
 	dc.l OptStr_Players
 	dc.l OptStr_PressStartExit
 	dc.l OptStr_AssignA
 	dc.l OptStr_AssignB
 	dc.l OptStr_AssignC
+	dc.l OptStr_HardMode
 	dc.l OptStr_COMLevel
 	dc.l OptStr_VSMode
 	dc.l OptStr_Sampling
@@ -44145,7 +44191,7 @@ OptStr_Players:	dc.w $312
 	dc.w $E200
 	dc.b "player 1       player 2"
 	dc.b $FF
-OptStr_PressStartExit:dc.w $C8E
+OptStr_PressStartExit:dc.w $D8E
 	dc.w $A200
 	dc.b "press start button to exit"
 	dc.b $FF
@@ -44165,17 +44211,22 @@ OptStr_AssignC:	dc.w $60C
 	dc.b "c:              c:"
 	dc.b $FF
 	dc.b 0
-OptStr_COMLevel:dc.w $78C
+OptStr_HardMode:dc.w $78C
+	dc.w $E200
+	dc.b "hard mode      :"
+	dc.b $FF
+	dc.b 0
+OptStr_COMLevel:dc.w $88C
 	dc.w $E200
 	dc.b "vs.com level   :"
 	dc.b $FF
 	dc.b 0
-OptStr_VSMode:	dc.w $88C
+OptStr_VSMode:	dc.w $98C
 	dc.w $E200
 	dc.b "1p vs.2p mode  :"
 	dc.b $FF
 	dc.b 0
-OptStr_Sampling:dc.w $98C
+OptStr_Sampling:dc.w $A8C
 	dc.w $E200
 	dc.b "sampling       :"
 	dc.b $FF
@@ -44347,10 +44398,10 @@ OptionsCtrl:
 	move.b	#2,d2
 	cmp.b	(swap_controls).l,d0
 	bne.w	.CheckButtons
-	move.b	#6,d2
+	move.b	#7,d2
 	tst.w	(sound_test_enabled).l
 	beq.w	.CheckButtons
-	move.b	#7,d2
+	move.b	#8,d2
 
 .CheckButtons:
 	btst	#0,d1
@@ -44406,6 +44457,7 @@ OptionsCtrl:
 	dc.l .KeyAssign
 	dc.l .KeyAssign
 	dc.l .KeyAssign
+	dc.l .HardMode
 	dc.l .COMLevel
 	dc.l .VSMode
 	dc.l .Sampling
@@ -44434,6 +44486,12 @@ OptionsCtrl:
 
 .loc_2315E:
 	move.b	d3,(a1,d2.w)
+	move.b	#0,d0
+	jmp	(PlaySound_ChkPCM).l
+; ---------------------------------------------------------------------------
+
+.HardMode:
+	eori.b	#$FF,(hard_mode).l
 	move.b	#0,d0
 	jmp	(PlaySound_ChkPCM).l
 ; ---------------------------------------------------------------------------
@@ -44472,9 +44530,9 @@ OptionsCtrl:
 ; ---------------------------------------------------------------------------
 
 .Select:
-	cmpi.b	#6,aField2C(a0,d0.w)
-	beq.w	.InputTest
 	cmpi.b	#7,aField2C(a0,d0.w)
+	beq.w	.InputTest
+	cmpi.b	#8,aField2C(a0,d0.w)
 	beq.w	.SoundTest
 	rts
 ; ---------------------------------------------------------------------------
@@ -44503,6 +44561,7 @@ OptionsCtrl:
 PrintMainOptions:
 	bsr.w	PrintP1CtrlOption
 	bsr.w	PrintP2CtrlOption
+	bsr.w	PrintHardModeOption
 	bsr.w	sub_232D4
 	bsr.w	PrintVSModeOption
 	bsr.w	PrintSamplingOption
@@ -44580,13 +44639,27 @@ OptStr_TurnRight:dc.b "turn right #"
 ; =============== S U B	R O U T	I N E =======================================
 
 
-sub_232D4:
+PrintHardModeOption:
+	move.b	#3,d0
 	move.w	#$7AE,d5
+	lea	(OptStr_Off).l,a1
+	tst.b	(hard_mode).l
+	beq.w	Options_PrintSelect
+	lea	(OptStr_On).l,a1
+	bra.w	Options_PrintSelect
+; End of function PrintHardModeOption
+
+
+; =============== S U B	R O U T	I N E =======================================
+
+
+sub_232D4:
+	move.w	#$8AE,d5
 	clr.w	d0
 	move.b	(com_level).l,d0
 	lsl.w	#2,d0
 	movea.l	COMLevelStrings(pc,d0.w),a1
-	move.b	#3,d0
+	move.b	#4,d0
 	bra.w	Options_PrintSelect
 ; End of function sub_232D4
 
@@ -44608,7 +44681,7 @@ OptStr_Easy:	dc.b "easy   "
 
 
 PrintVSModeOption:
-	move.w	#$8AE,d5
+	move.w	#$9AE,d5
 	clr.w	d0
 	move.b	(game_matches).l,d0
 	beq.w	.PrintMatchCount
@@ -44622,13 +44695,13 @@ PrintVSModeOption:
 	bsr.w	Options_Print
 	movem.l	(sp)+,d0
 	lea	(OptStr_GameMatch).l,a1
-	move.w	#$8B0,d5
+	move.w	#$9B0,d5
 	cmpi.w	#$14,d0
 	blt.s	.PrintGameMatch
-	move.w	#$8B2,d5
+	move.w	#$9B2,d5
 
 .PrintGameMatch:
-	move.b	#4,d0
+	move.b	#5,d0
 	bra.w	Options_PrintSelect
 ; End of function PrintVSModeOption
 
@@ -44657,8 +44730,8 @@ VSMode_15Match:	dc.b 2,	6, $FF,	0
 
 
 PrintSamplingOption:
-	move.b	#5,d0
-	move.w	#$9AE,d5
+	move.b	#6,d0
+	move.w	#$AAE,d5
 	lea	(OptStr_On).l,a1
 	tst.b	(disable_samples).l
 	beq.w	loc_233CE
@@ -44678,8 +44751,8 @@ OptStr_Off:	dc.b "off"
 
 
 PrintInputTest:
-	move.b	#6,d0
-	move.w	#$A9E,d5
+	move.b	#7,d0
+	move.w	#$B9E,d5
 	lea	(OptStr_InputTest2).l,a1
 	bra.w	Options_PrintSelect
 ; End of function PrintInputTest
@@ -44695,8 +44768,8 @@ OptStr_InputTest2:dc.b "input test"
 sub_233F8:
 	tst.w	(sound_test_enabled).l
 	beq.w	locret_23414
-	move.b	#7,d0
-	move.w	#$B9E,d5
+	move.b	#8,d0
+	move.w	#$C9E,d5
 	lea	(OptStr_SoundTest2).l,a1
 	bsr.w	Options_PrintSelect
 
@@ -44847,6 +44920,23 @@ loc_2357A:
 
 ; ---------------------------------------------------------------------------
 ComboVoices:	dc.b 0
+	dc.b VOI_P1_COMBO_1
+	dc.b VOI_P1_COMBO_2
+	dc.b VOI_P1_COMBO_3
+	dc.b VOI_P1_COMBO_4
+	dc.b VOI_P1_COMBO_4
+	dc.b VOI_P1_COMBO_4
+	dc.b VOI_P1_COMBO_4
+	dc.b 0
+	dc.b VOI_P2_COMBO_1
+	dc.b VOI_P2_COMBO_2
+	dc.b VOI_P2_COMBO_3
+	dc.b VOI_P2_COMBO_4
+	dc.b VOI_P2_COMBO_4
+	dc.b VOI_P2_COMBO_4
+	dc.b VOI_P2_COMBO_4
+
+HardModeComboVoices:	dc.b 0
 	dc.b VOI_P2_COMBO_1
 	dc.b VOI_P2_COMBO_2
 	dc.b VOI_P2_COMBO_3
@@ -44879,6 +44969,11 @@ SpawnGarbageGlow:
 
 .GetVoice:
 	lea	(ComboVoices).l,a1
+	tst.b	(hard_mode).l
+	beq.s	.GetPlayerVoice
+	lea	(HardModeComboVoices).l,a1
+
+.GetPlayerVoice:
 	tst.b	aPlayerID(a0)
 	beq.s	.PlayVoice
 	lea	8(a1),a1
