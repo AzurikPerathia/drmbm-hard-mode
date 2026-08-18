@@ -3680,14 +3680,16 @@ loc_390E:
 
 
 PuyoLandEffects:
+	; The player's beans always use the heavy landing effect in every stage.
+	tst.b	aPlayerID(a0)
+	beq.s	.Shake
+	; CPU opponents retain the original Frankly/Dragon-only behaviour.
 	cmpi.b	#OPP_FRANKLY,(opponent).l
 	beq.s	.Shake
 	cmpi.b	#OPP_DRAGON,(opponent).l
 	bne.w	PlayPuyoLandSound
 
 .Shake:
-	tst.b	aPlayerID(a0)
-	beq.w	PlayPuyoLandSound
 	move.b	#SFX_PUYO_LAND_HARD,d0
 	jsr	(PlaySound_ChkPCM).l
 	movem.l	a1,-(sp)
@@ -3695,10 +3697,17 @@ PuyoLandEffects:
 	bsr.w	FindActorSlotQuick
 	bcs.w	loc_3974
 	move.w	#$400,aField38(a1)
-	move.l	#(vscroll_buffer+$34),aAnim(a1)
-	tst.b	(swap_controls).l
-	beq.w	loc_3974
+	; Shake the field belonging to the bean that just landed.
 	move.l	#(vscroll_buffer+4),aAnim(a1)
+	move.b	aPlayerID(a0),d0
+	tst.b	(swap_controls).l
+	beq.s	.GotFieldSide
+	eori.b	#1,d0
+
+.GotFieldSide:
+	tst.b	d0
+	beq.w	loc_3974
+	move.l	#(vscroll_buffer+$34),aAnim(a1)
 
 loc_3974:
 	movem.l	(sp)+,a1
@@ -10203,7 +10212,17 @@ loc_7ACE:
 	lsl.b	#1,d0
 	ori.b	#1,d0
 	move.w	d0,(word_FF198C).l
+	; Preserve the player's exact current score when player 1 loses.
+	; A new game still clears it in InitTitleFlags as before.
+	tst.b	$2A(a0)
+	bne.s	.ResetCarriedScore
+	move.l	$A(a0),(dword_FF195C).l
+	bra.s	.ScoreReady
+
+.ResetCarriedScore:
 	clr.l	(dword_FF195C).l
+
+.ScoreReady:
 	clr.w	(dword_FF1960).l
 	tst.b	$2A(a0)
 	bne.w	loc_7B2C
@@ -30368,6 +30387,11 @@ sub_1233A:
 loc_12346:
 	move.w	d1,(a2)+
 	dbf	d0,loc_12346
+	; Roll one of three equally likely AI temperaments for this match.
+	move.w	#3,d0
+	jsr	(RandomBound).l
+	move.b	d0,(byte_FF1D4E+3).l
+	move.b	d0,(byte_FF1D58+3).l
 	move.b	(level_mode).l,d0
 	andi.b	#3,d0
 	beq.w	loc_1235C
@@ -30598,22 +30622,27 @@ loc_12578:
 
 ; ---------------------------------------------------------------------------
 off_12584: ; AI?
-	dc.l unk_125C4
-	dc.l unk_125E4
-	dc.l unk_1260C	
-	dc.l unk_125DC ; Arms
-	dc.l unk_125CC
-	dc.l unk_12614
-	dc.l unk_125FC
-	dc.l byte_125F4
-	dc.l byte_1261C
-	dc.l byte_12624
-	dc.l byte_1262C
-	dc.l byte_12634 ; Scratch
-	dc.l byte_1263C ; Dr. Robotnik
-	dc.l unk_125D4
-	dc.l unk_125EC
-	dc.l byte_12604
+	; Give every CPU opponent the boss-level evaluator and seven verified
+	; chain plans whose targets range from one to seven links.
+	dc.l AI_HardChain
+	dc.l AI_HardChain
+	dc.l AI_HardChain
+	dc.l AI_HardChain ; Arms
+	dc.l AI_HardChain
+	dc.l AI_HardChain
+	dc.l AI_HardChain
+	dc.l AI_HardChain
+	dc.l AI_HardChain
+	dc.l AI_HardChain
+	dc.l AI_HardChain
+	dc.l AI_HardChain ; Scratch
+	dc.l AI_HardChain ; Dr. Robotnik
+	dc.l AI_HardChain
+	dc.l AI_HardChain
+	dc.l AI_HardChain
+
+AI_HardChain:
+	dc.b   0, 0, $FF, $24, $24, 0, 7, $83
 		
 unk_125C4:	
 	dc.b   0
@@ -32032,9 +32061,8 @@ sub_12FAE:
 	bmi.w	locret_12FCA
 	tst.b	d3
 	bne.w	locret_12FCA
-	cmpi.b	#8,3(a6)
-	bcc.w	loc_12FCC
-	addq.b	#1,3(a6)
+	; Pick a new chain target immediately after the previous plan ends.
+	bra.w	loc_12FCC
 
 locret_12FCA:
 	rts
@@ -32230,11 +32258,19 @@ loc_13124:
 
 loc_13142:
 	movem.l	a3,-(sp)
-	clr.w	d0
-	move.b	6(a2),d0
-	jsr	(RandomBound).l
-	lsl.w	#2,d0
-	movea.l	off_1317C(pc,d0.w),a3
+	bsr.w	SelectRandomAIChainPlan
+	bsr.w	sub_13006
+	bcc.w	loc_13168
+	; If the ambitious layout is blocked by garbage or an uneven field,
+	; try progressively smaller plans elsewhere before using the old
+	; obstacle-clearing evaluator.
+	lea	(AIChainPlan3).l,a3
+	bsr.w	sub_13006
+	bcc.w	loc_13168
+	lea	(AIChainPlan2).l,a3
+	bsr.w	sub_13006
+	bcc.w	loc_13168
+	lea	(AIChainPlan1).l,a3
 	bsr.w	sub_13006
 	bcc.w	loc_13168
 	movem.l	(sp)+,a3
@@ -32250,18 +32286,87 @@ loc_13168:
 	rts
 ; END OF FUNCTION CHUNK	FOR sub_12FAE
 ; ---------------------------------------------------------------------------
-off_1317C:	dc.l byte_13226
-	dc.l byte_13232
-	dc.l byte_13240
-	dc.l byte_1324E
-	dc.l byte_131EA
-	dc.l byte_131F8
-	dc.l byte_13208
+
+; Select the chain target from the per-match temperament:
+; 0 = weak (1-3), 1 = medium/current intelligence (1-7),
+; 2 = brutal (6-7). A completed plan immediately requests another one.
+SelectRandomAIChainPlan:
+	clr.w	d1
+	move.b	3(a6),d1
+	cmpi.b	#1,d1
+	bcs.s	.Weak
+	beq.s	.Medium
+	move.w	#2,d0
+	jsr	(RandomBound).l
+	addq.w	#5,d0
+	bra.s	.Load
+
+.Weak:
+	move.w	#3,d0
+	bra.s	.Pick
+
+.Medium:
+	move.w	#7,d0
+
+.Pick:
+	jsr	(RandomBound).l
+
+.Load:
+	lsl.w	#2,d0
+	movea.l	off_1317C(pc,d0.w),a3
+	rts
+
+off_1317C:	dc.l AIChainPlan1
+	dc.l AIChainPlan2
+	dc.l AIChainPlan3
+	dc.l AIChainPlan4
+	dc.l AIChainPlan5
+	dc.l AIChainPlan6
+	dc.l AIChainPlan7
 	dc.l byte_13218
 	dc.l byte_131DA
 	dc.l byte_131CA
 	dc.l byte_131BA
 	dc.l byte_131AC
+
+; Each plan contains: required width/height, forced pair colours, then target
+; column/rotation commands. The colour remapper randomizes their appearance.
+; These seven plans were simulated to avoid early pops and resolve to exactly
+; the requested chain length when started on a compatible section of field.
+AIChainPlan1:
+	dc.b 2, 2
+	dc.b $00, $00, $FF
+	dc.b $00, $10, $FF
+
+AIChainPlan2:
+	dc.b 3, 5
+	dc.b $01, $11, $00, $00, $11, $FF
+	dc.b $01, $10, $10, $00, $20, $FF
+
+AIChainPlan3:
+	dc.b 4, 5
+	dc.b $01, $22, $21, $11, $00, $00, $22, $FF
+	dc.b $01, $20, $20, $10, $10, $00, $30, $FF
+
+AIChainPlan4:
+	dc.b 5, 5
+	dc.b $01, $33, $32, $22, $21, $11, $00, $00, $33, $FF
+	dc.b $01, $30, $30, $20, $20, $10, $10, $00, $40, $FF
+
+AIChainPlan5:
+	dc.b 6, 5
+	dc.b $01, $44, $43, $33, $32, $22, $21, $11, $00, $00, $44, $FF
+	dc.b $01, $40, $40, $30, $30, $20, $20, $10, $10, $00, $50, $FF
+
+AIChainPlan6:
+	dc.b 5, 8
+	dc.b $12, $22, $00, $04, $44, $43, $11, $10, $33, $32, $22, $11, $11, $11, $FF
+	dc.b $01, $40, $40, $40, $30, $30, $30, $30, $20, $20, $10, $10, $00, $40, $FF
+
+AIChainPlan7:
+	dc.b 6, 8
+	dc.b $01, $22, $00, $04, $44, $43, $11, $10, $33, $32, $22, $21, $11, $00, $00, $11, $FF
+	dc.b $01, $50, $50, $50, $40, $40, $40, $40, $30, $30, $20, $20, $10, $10, $00, $50, $FF
 byte_131AC:	dc.b 3
 	dc.b 5
 	dc.b 0
@@ -44742,14 +44847,6 @@ loc_2357A:
 
 ; ---------------------------------------------------------------------------
 ComboVoices:	dc.b 0
-	dc.b VOI_P1_COMBO_1
-	dc.b VOI_P1_COMBO_2
-	dc.b VOI_P1_COMBO_3
-	dc.b VOI_P1_COMBO_4
-	dc.b VOI_P1_COMBO_4
-	dc.b VOI_P1_COMBO_4
-	dc.b VOI_P1_COMBO_4
-	dc.b 0
 	dc.b VOI_P2_COMBO_1
 	dc.b VOI_P2_COMBO_2
 	dc.b VOI_P2_COMBO_3
@@ -44757,6 +44854,14 @@ ComboVoices:	dc.b 0
 	dc.b VOI_P2_COMBO_4
 	dc.b VOI_P2_COMBO_4
 	dc.b VOI_P2_COMBO_4
+	dc.b 0
+	dc.b VOI_P1_COMBO_1
+	dc.b VOI_P1_COMBO_2
+	dc.b VOI_P1_COMBO_3
+	dc.b VOI_P1_COMBO_4
+	dc.b VOI_P1_COMBO_4
+	dc.b VOI_P1_COMBO_4
+	dc.b VOI_P1_COMBO_4
 
 ; =============== S U B	R O U T	I N E =======================================
 
