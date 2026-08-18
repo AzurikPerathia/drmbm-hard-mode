@@ -1,79 +1,160 @@
-# Dr. Robotnik's Mean Bean Machine (Mega Drive) - Hard Mode
+<h1 align="center">Dr. Robotnik's Mean Bean Machine — Hard Mode</h1>
 
-This is a work-in-progress is hard mode of Dr. Robotnik's Mean Bean Machine for the Sega Mega Drive/Sega Genesis. 
+<p align="center"><strong>A configurable challenge expansion for the Sega Mega Drive / Genesis game</strong></p>
 
+<p align="center">
+  <a href="https://github.com/AzurikPerathia/drmbm-hard-mode/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/AzurikPerathia/drmbm-hard-mode?style=for-the-badge&amp;label=Latest%20Release&amp;color=dd3b3b"></a>
+  <a href="#building-from-source"><img alt="Platform" src="https://img.shields.io/badge/Platform-Mega%20Drive%20%2F%20Genesis-1f6feb?style=for-the-badge"></a>
+  <a href="#hard-mode"><img alt="Hard Mode" src="https://img.shields.io/badge/Hard%20Mode-Optional-f0a020?style=for-the-badge"></a>
+</p>
 
-## Folder Structure (in progress)
+<p align="center">
+  Built from the work-in-progress disassembly by the
+  <a href="https://github.com/Scrambled-Beans/drmbm-md-disasm">Scrambled Beans team</a>.
+</p>
 
-- header - folder - ASM files to edit the ROM's header information and vectors
-- tools - folder - Tools needed to buil the ROM.
-- build rom (Windows).bat - executable - Convenience batch script (Windows) to build the ROM
+<p align="center">
+  <a href="https://github.com/AzurikPerathia/drmbm-hard-mode/releases/tag/v0.1"><strong>Download v0.1</strong></a>
+  ·
+  <a href="https://github.com/AzurikPerathia/drmbm-hard-mode">Browse the source</a>
+</p>
 
+---
 
-## Crediting
+## About the project
 
-If you use this disassembly for any rom hacks, please can you put the following link in the README file: https://github.com/Scrambled-Beans/drmbm-md-disasm
+This project expands *Dr. Robotnik's Mean Bean Machine* with a much more demanding CPU opponent and several gameplay enhancements, while keeping the original experience available.
 
+A new **HARD MODE** option appears directly above **VS.COM LEVEL** in the Options menu. It is disabled by default and saved alongside the other game settings.
 
-## Building (Windows)
+- **HARD MODE: OFF** — restores the original gameplay behavior.
+- **HARD MODE: ON** — enables every enhancement included in this project.
 
-1 - Download the repo.<br/>
-2 - Open "build config.asm" and adjust any settings (the default settings build a 100% USA Version).<br/>
-3 - Run "build (Windows).bat" to build the rom.<br/>
-4 - The built rom can be found in the "output" folder.
+## Hard Mode
 
-## Sprite Editing
+| Feature | Hard Mode OFF | Hard Mode ON |
+|---|---|---|
+| CPU intelligence | Original opponent profiles | Enhanced evaluator on all 13 stages |
+| Chain planning | Original plans and timing | Verified chain plans from 1 to 7 links |
+| AI temperament | Original stage behavior | Random Weak, Medium, or Brutal temperament per battle |
+| Obstacles | Original garbage handling | Tries compact builds elsewhere before targeting non-blocking rocks |
+| Combo voices | Original assignments | **Yeehaw** for the player and **Yippee** for opponents |
+| Heavy landing | Original stage-specific behavior | Player board shake and heavy landing sound in every stage |
+| Score after defeat | Reset as in the original game | Current player score is preserved |
 
-Use Flex2-Puyo: https://github.com/Nasina7/Flex2-Puyo/releases<br/>
-<br/>
-A work-in-progress project to edit the sprites can be found in the following folder: include > projects > Flex2-Puyo 
+### Smarter and more aggressive AI
 
-## Issues/Improvements
+Each battle randomly selects one of three equally likely CPU temperaments:
 
-Suggestions, pull requests, and the like are welcome!<br/>
-<br/>
-Please do not submit an issue relating to ROM-Hacking the game. Instead, please ask for help on the following forums:
-- https://forums.sonicretro.org/forums/engineering-reverse-engineering.13/
-- https://sonicresearch.org/community/index.php
-- https://www.romhacking.net
+- **Weak** builds chains from 1 to 3 links.
+- **Medium** builds chains from 1 to 7 links.
+- **Brutal** continuously prioritizes 6- and 7-link chains.
 
-## Contributing
+The enhanced AI uses seven verified chain plans. After completing a chain, it immediately starts preparing the next one. If a large setup is blocked by black rocks or an uneven field, it first attempts a smaller construction elsewhere instead of automatically abandoning its game to remove the obstacle.
 
-If you are interesting in contributing to the disassembly, please send an to e-mail to scrambled-beans@outlook.com or radiotailspuyo@outlook.com<br/>
-<br/>
-Do check the "progress.txt" file first to see what is currently being updated.<br/>
-<br/>
-Any updates that are being contributed will first have to be checked by RadioTails before they can be applied to this disassembly.
+### Score preservation
 
+When the player is defeated in Hard Mode, the current score is carried into the retry flow. Starting a completely new game still resets the score normally.
+
+### Combo voices
+
+Hard Mode swaps the combo voice roles requested for this edition:
+
+- The player receives the **Yeehaw** combo calls.
+- CPU opponents receive the **Yippee** combo calls.
+
+### Heavy landing and board shake
+
+The player's beans trigger the heavy landing sound and board shake in every stage. The correct board is animated even when the controls are swapped. CPU opponents retain their original stage-specific behavior.
+
+## Download and play
+
+The latest prebuilt ROM is available from the [GitHub Releases page](https://github.com/AzurikPerathia/drmbm-hard-mode/releases/latest).
+
+For version `v0.1`:
+
+- ROM size: **1 MiB**
+- SHA-256: `02A6C5CA125D15579F4DBF18CBF3F150D6390FB355E34A73FE88D427C3882856`
+
+Use the ROM with a compatible Sega Mega Drive / Genesis emulator or suitable original hardware setup. HARD MODE can be enabled from the in-game Options menu.
+
+## Building from source
+
+### Windows
+
+1. Clone or download this repository.
+2. Open `build config.asm` and adjust the desired build settings. The defaults produce the USA version.
+3. Run `build rom (Windows).bat`.
+4. Find the compiled ROM and assembly log in the `output` directory.
+
+The repository includes the required Windows build tools. The main assembler command produces a 1 MiB ROM and the included utility fixes its header checksum.
+
+## Project structure
+
+| Path | Purpose |
+|---|---|
+| `drmbm.asm` | Main game disassembly and Hard Mode logic |
+| `include/` | Constants, macros, RAM definitions, and supporting projects |
+| `modules/` | Reusable assembly modules and default option setup |
+| `resources/` | Art, mappings, palettes, text, and game data |
+| `sound/` | Music, sound effects, PCM banks, and sound-driver data |
+| `tools/` | Assemblers, compressors, and ROM utilities |
+| `output/` | Generated ROM, listing, and build log |
+
+## Sprite editing
+
+Use [Flex2-Puyo](https://github.com/Nasina7/Flex2-Puyo/releases) to edit compatible sprite data. A work-in-progress editing project is available under `include/projects/Flex2-Puyo`.
+
+## Credits and attribution
+
+This Hard Mode edition is based on the original
+[Dr. Robotnik's Mean Bean Machine disassembly](https://github.com/Scrambled-Beans/drmbm-md-disasm).
+
+If you use this code in another ROM hack, please preserve the upstream attribution and link to the original disassembly.
+
+<details>
+<summary><strong>Original disassembly contributors</strong></summary>
+
+- RadioTails
+- Ralakimus
+- Nasina
+- TomboyDragon
+- Neto
+- DaxKatter
+- ArcaniaCQ
+- Kiwami
+- AdolescentSeagull
+- Hivebrain
+- MarkeyJester
+- Totally-Not-Filter
+
+</details>
+
+### Tools
+
+- [puyomdtool](https://github.com/Nasina7/puyomdtool/releases) by Nasina
+- [ClownAssembler](https://github.com/Clownacy/clownassembler/releases) by Clownacy
+- [ClownNemesis](https://github.com/Clownacy/clownnemesis/releases) by Clownacy
+- [Enigma compression tool](https://www.romhacking.net/utilities/757/) by Kosinski
+
+## Contributing and support
+
+Suggestions and pull requests for this Hard Mode edition are welcome. Please use this repository's [Issues page](https://github.com/AzurikPerathia/drmbm-hard-mode/issues) for reproducible problems or enhancement ideas.
+
+For general Mega Drive reverse-engineering and ROM-hacking help, these communities may also be useful:
+
+- [Sonic Retro — Engineering / Reverse Engineering](https://forums.sonicretro.org/forums/engineering-reverse-engineering.13/)
+- [Sonic Stuff Research Group](https://sonicresearch.org/community/index.php)
+- [ROMhacking.net](https://www.romhacking.net)
 
 ## Disclaimer
 
-- Any and all content presented in this repository is for informational and educational purposes only.<br/>
-- Commercial usage is expressly prohibited.<br/>
-- Scramble Beans or any of the contributors do not claim ownership of any code in this repository.<br/>
-- You assume any and all responsibility for using this content.<br/>
-- Scramble Beans or any of the contributors do not claim any responsibility or warranty.
+- This repository is provided for informational and educational purposes.
+- Commercial use is expressly prohibited.
+- The project contributors do not claim ownership of the original game or its copyrighted assets.
+- You are responsible for complying with the laws applicable in your region and for using legally obtained game data.
+- The project is provided without warranty; contributors accept no responsibility for its use.
 
+---
 
-## Contributors
-
-- RadioTails<br/>
-- Ralakimus<br/>
-- Nasina<br/>
-- TomboyDragon<br/>
-- Neto<br/>
-- DaxKatter<br/>
-- ArcaniaCQ<br/>
-- Kiwami<br/>
-- AdolescentSeagull<br/>
-- Hivebrain<br/>
-- MarkeyJester<br/>
-- Totally-Not-Filter<br/>
-
-
-## Tools
-
-- "puyomdtool.exe" by Nasina (https://github.com/Nasina7/puyomdtool/releases)
-- "clownassembler_asm68k.exe" by Clownacy (https://github.com/Clownacy/clownassembler/releases)
-- "clownnemesis.exe" by Clownacy (https://github.com/Clownacy/clownnemesis/releases)
-- "enicmp.exe" by Kosinski (https://www.romhacking.net/utilities/757/)
+<p align="center"><strong>Ready for a meaner Mean Bean Machine? Enable HARD MODE and build your chain.</strong></p>
