@@ -15490,7 +15490,7 @@ LoadOpponentIntro:
 	bne.s	.ChkRobotnik
 	tst.b	(story_route).l
 	beq.s	.ArmsArt
-	lea	(ArtNem_CreamIntro).l,a0
+	lea	(ArtNem_CreamIntroBack).l,a0
 	move.w	#$8000,d0
 	bra.s	.DoArtLoad
 
@@ -15552,9 +15552,10 @@ loc_A9C0:
 	tst.b	(story_route).l
 	beq.s	.StandardMapping
 	move.b	#$41,d1
-	move.l	#CreamIntroAnim,aAnim(a1)
+	move.l	#CreamIntroBackAnim,aAnim(a1)
 	clr.w	aAnimTime(a1)
 	clr.b	aFrame(a1)
+	clr.b	aField28(a1)
 
 .StandardMapping:
 	move.b	d1,aMappings(a1)
@@ -15647,10 +15648,20 @@ loc_AAAA:
 	bne.s	.StandardAnimation
 	tst.b	(story_route).l
 	beq.s	.StandardAnimation
+	move.b	d0,aField28(a0)
 	lea	(CreamIntroAnimations).l,a2
 	lsl.w	#2,d0
 	move.l	(a2,d0.w),aAnim(a0)
 	clr.w	aAnimTime(a0)
+	lea	(CreamIntroArt).l,a3
+	movea.l	(a3,d0.w),a3
+	move.l	a0,-(sp)
+	movea.l	a3,a0
+	move.w	#$8000,d0
+	DISABLE_INTS
+	jsr	(NemDec).l
+	ENABLE_INTS
+	movea.l	(sp)+,a0
 	bra.s	loc_AACA
 
 .StandardAnimation:
@@ -15669,10 +15680,12 @@ loc_AACA:
 	tst.b	(cream_dialogue_active).l
 	bne.w	.RunOpponentAnimation
 
-	; Keep Cream's mouth firmly closed outside an active dialogue box.
-	clr.b	aFrame(a0)
+	; Keep the selected Cream pose, but close her mouth outside a dialogue box.
+	clr.w	d0
+	move.b	aField28(a0),d0
+	lea	(CreamIntroClosedFrames).l,a1
+	move.b	(a1,d0.w),aFrame(a0)
 	clr.b	aAnimTime(a0)
-	move.l	#CreamIntroAnim,aAnim(a0)
 	rts
 
 .RunOpponentAnimation:
@@ -15800,17 +15813,40 @@ off_ABC8:
 	dc.l ArtUnc_Robotnik_0
 
 CreamIntroAnimations:
-	dc.l CreamIntroAnim
-	dc.l CreamIntroAnim
-	dc.l CreamIntroAnim
-	dc.l CreamIntroAnim
-	dc.l CreamIntroAnim
-	dc.l CreamIntroAnim
-	dc.l CreamIntroAnim
-	dc.l CreamIntroAnim
-CreamIntroAnim:
-	dc.b 4, 0, 4, 1, $FF, 0
-	dc.l CreamIntroAnim
+	dc.l CreamIntroBackAnim
+	dc.l CreamIntroTurnAnim
+	dc.l CreamIntroNormalAnim
+	dc.l CreamIntroChestAnim
+	dc.l CreamIntroShyAnim
+	dc.l CreamIntroNormalAnim
+	dc.l CreamIntroNormalAnim
+	dc.l CreamIntroNormalAnim
+CreamIntroArt:
+	dc.l ArtNem_CreamIntroBack
+	dc.l ArtNem_CreamIntroTurn
+	dc.l ArtNem_CreamIntroNormal
+	dc.l ArtNem_CreamIntroChest
+	dc.l ArtNem_CreamIntroShy
+	dc.l ArtNem_CreamIntroNormal
+	dc.l ArtNem_CreamIntroNormal
+	dc.l ArtNem_CreamIntroNormal
+CreamIntroClosedFrames:
+	dc.b 0, 2, 4, 6, 8, 4, 4, 4
+CreamIntroBackAnim:
+	dc.b $20, 0, $FF, 0
+	dc.l CreamIntroBackAnim
+CreamIntroTurnAnim:
+	dc.b $20, 2, $FF, 0
+	dc.l CreamIntroTurnAnim
+CreamIntroNormalAnim:
+	dc.b 4, 4, 4, 5, $FF, 0
+	dc.l CreamIntroNormalAnim
+CreamIntroChestAnim:
+	dc.b 4, 6, 4, 7, $FF, 0
+	dc.l CreamIntroChestAnim
+CreamIntroShyAnim:
+	dc.b 4, 8, 4, 9, $FF, 0
+	dc.l CreamIntroShyAnim
 	
 off_AC48:	
 	dc.l off_AC8C
@@ -27338,9 +27374,19 @@ loc_10FFA:
 	movea.l	(sp)+,a0
 	clr.w	d0
 	move.b	(opponent).l,d0
+	cmpi.b	#OPP_ARMS,d0
+	bne.s	.StandardDialogue
+	tst.b	(story_route).l
+	beq.s	.StandardDialogue
+	move.l	#CreamIntroDialogue,aAnim(a0)
+	bra.s	.DialogueSelected
+
+.StandardDialogue:
 	lsl.w	#2,d0
 	lea	(off_113FE).l,a1
 	move.l	(a1,d0.w),aAnim(a0)
+
+.DialogueSelected:
 	jsr	(ActorBookmark).l
 
 Actlevel_intro_update:
@@ -27719,6 +27765,41 @@ off_113FE:	dc.l unk_11852
 	dc.l unk_11442
 	dc.l unk_114D4
 	dc.l unk_11BE2
+
+CreamIntroDialogue:
+	; Cream starts with her back turned.
+	dc.b $85, 0
+	dc.b $83, 2
+	dc.b $81, $39, $D8, $8C
+	dc.b "Ohhh... But who is this?"
+	dc.b $83, 8
+	dc.b $82
+	; Give the turn its own clearly visible pause before she faces Robotnik.
+	dc.b $85, 1
+	dc.b $83, 6
+	dc.b $85, 2
+	dc.b $83, 2
+	dc.b $81, $9C, $D6, $88
+	dc.b "Oh, hello, mister! You bad guy! My mommy Vanilla always told me not to talk to strangers!"
+	dc.b $83, $1E
+	dc.b $82
+	; Polite, confident pose with one hand over her chest.
+	dc.b $85, 3
+	dc.b $83, 2
+	dc.b $81, $BC, $D5, $88
+	dc.b "But if you insist, I'm Cream the Rabbit! I'm polite and well-mannered, and I'm going to teach you to respect me!"
+	dc.b $83, $24
+	dc.b $82
+	; Shy final admission.
+	dc.b $85, 4
+	dc.b $83, 2
+	dc.b $81, $5C, $D7, $88
+	dc.b "That's what Sonic told me to say, hehe..."
+	dc.b $83, $10
+	dc.b $82
+	dc.b $80
+	even
+
 unk_11442:	dc.b $85
 	dc.b   2
 	dc.b $83
@@ -33803,12 +33884,36 @@ SpriteMappings:
 ; --------------------------------------------------------------
 
 Sprite_Cutscene_Cream:
-	dc.l Sprite_Cutscene_Cream_Closed
-	dc.l Sprite_Cutscene_Cream_Open
-Sprite_Cutscene_Cream_Closed:
-	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Closed).map"
-Sprite_Cutscene_Cream_Open:
-	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Open).map"
+	dc.l Sprite_Cutscene_Cream_BackClosed
+	dc.l Sprite_Cutscene_Cream_BackOpen
+	dc.l Sprite_Cutscene_Cream_TurnClosed
+	dc.l Sprite_Cutscene_Cream_TurnOpen
+	dc.l Sprite_Cutscene_Cream_NormalClosed
+	dc.l Sprite_Cutscene_Cream_NormalOpen
+	dc.l Sprite_Cutscene_Cream_ChestClosed
+	dc.l Sprite_Cutscene_Cream_ChestOpen
+	dc.l Sprite_Cutscene_Cream_ShyClosed
+	dc.l Sprite_Cutscene_Cream_ShyOpen
+Sprite_Cutscene_Cream_BackClosed:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Back Closed).map"
+Sprite_Cutscene_Cream_BackOpen:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Back Open).map"
+Sprite_Cutscene_Cream_TurnClosed:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Turn Closed).map"
+Sprite_Cutscene_Cream_TurnOpen:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Turn Open).map"
+Sprite_Cutscene_Cream_NormalClosed:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Normal Closed).map"
+Sprite_Cutscene_Cream_NormalOpen:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Normal Open).map"
+Sprite_Cutscene_Cream_ChestClosed:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Chest Closed).map"
+Sprite_Cutscene_Cream_ChestOpen:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Chest Open).map"
+Sprite_Cutscene_Cream_ShyClosed:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Shy Closed).map"
+Sprite_Cutscene_Cream_ShyOpen:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Shy Open).map"
 
 ; --------------------------------------------------------------
 
@@ -46446,8 +46551,20 @@ ArtNem_ArmsIntro2:
 	incbin	"resources/art/art_nem/compressed/Cutscene - Arms (Set 2).nem"
 	even
 
-ArtNem_CreamIntro:
-	incbin	"resources/art/art_nem/compressed/Cutscene - Cream.nem"
+ArtNem_CreamIntroBack:
+	incbin	"resources/art/art_nem/compressed/Cutscene - Cream (Back).nem"
+	even
+ArtNem_CreamIntroTurn:
+	incbin	"resources/art/art_nem/compressed/Cutscene - Cream (Turn).nem"
+	even
+ArtNem_CreamIntroNormal:
+	incbin	"resources/art/art_nem/compressed/Cutscene - Cream (Normal).nem"
+	even
+ArtNem_CreamIntroChest:
+	incbin	"resources/art/art_nem/compressed/Cutscene - Cream (Chest).nem"
+	even
+ArtNem_CreamIntroShy:
+	incbin	"resources/art/art_nem/compressed/Cutscene - Cream (Shy).nem"
 	even
 	
 ArtNem_DragonIntro:

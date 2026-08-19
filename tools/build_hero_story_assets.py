@@ -260,10 +260,12 @@ def image_to_sprite_art(image: Image.Image) -> bytes:
     return bytes(output)
 
 
-def prepare_dialogue(path: Path) -> Image.Image:
+def prepare_dialogue(path: Path, *, remove_white: bool = False) -> Image.Image:
     """Normalize generated full-body art to a stable 10x14-tile sprite canvas."""
 
     source = Image.open(path).convert("RGBA")
+    if remove_white:
+        source = remove_connected_white(source)
     normalized = Image.new("RGBA", (1200, 1320), (0, 0, 0, 0))
     if source.width > 1200 or source.height > 1320:
         source.thumbnail((1200, 1320), Image.Resampling.LANCZOS)
@@ -341,12 +343,23 @@ def write_portrait_assets() -> None:
 
 
 def write_dialogue_assets() -> None:
-    closed = prepare_dialogue(SOURCE_DIR / "cream-dialogue-closed.png")
+    normal = prepare_dialogue(SOURCE_DIR / "cream-dialogue-closed.png")
     generated_open = prepare_dialogue(SOURCE_DIR / "cream-dialogue-open.png")
-    opened = replace_tile_regions(closed, generated_open, ((4, 7, 6, 9),))
-    palette = build_shared_palette([closed, opened])
-    closed_indexed = remap(closed, palette, transparent_sprite=True)
-    open_indexed = remap(opened, palette, transparent_sprite=True)
+    poses = {
+        "Back": prepare_dialogue(SOURCE_DIR / "cream-dialogue-back.png", remove_white=True),
+        "Turn": prepare_dialogue(SOURCE_DIR / "cream-dialogue-turn.png", remove_white=True),
+        "Normal": normal,
+        "Chest": prepare_dialogue(SOURCE_DIR / "cream-dialogue-chest.png", remove_white=True),
+        "Shy": prepare_dialogue(SOURCE_DIR / "cream-dialogue-shy.png", remove_white=True),
+    }
+    speaking = {
+        "Back": poses["Back"],
+        "Turn": poses["Turn"],
+        "Normal": replace_tile_regions(normal, generated_open, ((4, 7, 6, 9),)),
+        "Chest": replace_tile_regions(poses["Chest"], generated_open, ((4, 7, 6, 9),)),
+        "Shy": replace_tile_regions(poses["Shy"], generated_open, ((4, 7, 6, 9),)),
+    }
+    palette = build_shared_palette(list(poses.values()) + list(speaking.values()))
 
     pieces = (
         (0, 0, 4, 4), (4, 0, 4, 4), (8, 0, 2, 4),
@@ -354,17 +367,9 @@ def write_dialogue_assets() -> None:
         (0, 8, 4, 4), (4, 8, 4, 4), (8, 8, 2, 4),
         (0, 12, 4, 2), (4, 12, 4, 2), (8, 12, 2, 2),
     )
-    art, starts = sprite_piece_art(closed_indexed, pieces)
-    mouth_piece = ((4, 7, 2, 2),)
-    mouth_art, mouth_starts = sprite_piece_art(open_indexed, mouth_piece)
-    mouth_start = len(art) // 32 + mouth_starts[0]
-    art += mouth_art
-    if len(art) > 0x2000:
-        raise RuntimeError(f"Cream dialogue sprite exceeds reserved VRAM: {len(art)} bytes")
-    (ART_DIR / "Cutscene - Cream.unc").write_bytes(art)
     write_palette(palette, "Cutscene - Cream.pal")
 
-    def mapping_words(include_mouth: bool) -> list[tuple[int, int, int, int]]:
+    def mapping_words(starts: list[int], mouth_start: int, include_mouth: bool) -> list[tuple[int, int, int, int]]:
         words: list[tuple[int, int, int, int]] = []
         talking_bob = -1 if include_mouth else 0
         # Earlier Mega Drive sprites win when pieces overlap.  Put the mouth
@@ -379,20 +384,39 @@ def write_dialogue_assets() -> None:
             words.append((tile_y * 8 - 24 + talking_bob, size | 2, 0xE400 + start, 8 + tile_x * 8))
         return words
 
-    for suffix, include_mouth in (("Closed", False), ("Open", True)):
-        output = bytearray()
-        words = mapping_words(include_mouth)
-        output.extend(len(words).to_bytes(2, "big"))
-        for piece in words:
-            for value in piece:
-                output.extend((value & 0xFFFF).to_bytes(2, "big"))
-        (MAP_DIR / f"Cutscene - Cream ({suffix}).map").write_bytes(output)
+    indexed_poses: dict[str, tuple[Image.Image, Image.Image]] = {}
+    for pose_name, closed in poses.items():
+        opened = speaking[pose_name]
+        closed_indexed = remap(closed, palette, transparent_sprite=True)
+        open_indexed = remap(opened, palette, transparent_sprite=True)
+        indexed_poses[pose_name] = (closed_indexed, open_indexed)
 
-    preview = Image.new("RGBA", (160, 112), (0, 0, 0, 0))
-    preview.alpha_composite(closed, (0, 0))
-    preview.alpha_composite(opened, (80, 0))
-    preview.resize((640, 448), Image.Resampling.NEAREST).save(SOURCE_DIR / "cream-dialogue-preview.png")
-    print(f"Cream dialogue: {len(art) // 32} tiles including mouth overlay")
+        art, starts = sprite_piece_art(closed_indexed, pieces)
+        mouth_piece = ((4, 7, 2, 2),)
+        mouth_art, mouth_starts = sprite_piece_art(open_indexed, mouth_piece)
+        mouth_start = len(art) // 32 + mouth_starts[0]
+        art += mouth_art
+        if len(art) > 0x2000:
+            raise RuntimeError(f"Cream {pose_name} dialogue sprite exceeds reserved VRAM: {len(art)} bytes")
+        (ART_DIR / f"Cutscene - Cream ({pose_name}).unc").write_bytes(art)
+
+        for suffix, include_mouth in (("Closed", False), ("Open", True)):
+            output = bytearray()
+            words = mapping_words(starts, mouth_start, include_mouth)
+            output.extend(len(words).to_bytes(2, "big"))
+            for piece in words:
+                for value in piece:
+                    output.extend((value & 0xFFFF).to_bytes(2, "big"))
+            (MAP_DIR / f"Cutscene - Cream ({pose_name} {suffix}).map").write_bytes(output)
+
+    preview = Image.new("RGBA", (80 * len(indexed_poses), 224), (0, 0, 0, 0))
+    for frame, (closed, opened) in enumerate(indexed_poses.values()):
+        preview.alpha_composite(closed.convert("RGBA"), (frame * 80, 0))
+        preview.alpha_composite(opened.convert("RGBA"), (frame * 80, 112))
+    preview.resize((320 * len(indexed_poses), 896), Image.Resampling.NEAREST).save(
+        SOURCE_DIR / "cream-dialogue-preview.png"
+    )
+    print(f"Cream dialogue: built {len(indexed_poses)} dynamically loaded poses")
 
 
 def label_tile(char: str, background: int = 12, shadow: int = 11, foreground: int = 14) -> Image.Image:
