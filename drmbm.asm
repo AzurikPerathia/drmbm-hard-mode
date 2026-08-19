@@ -24110,6 +24110,15 @@ loc_F602:
 	lea	($D200).l,a1
 	lea	(MapEni_LvlIntroBG_0).l,a0
 	move.w	#$8100,d0
+	; Cream's dialogue uses high-priority Plane A tiles. Lower the stage-one
+	; scenery only on her route so the box stays above every background element,
+	; while Cream's high-priority sprite remains in front of the dialogue.
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.IntroBGPriorityReady
+	tst.b	(story_route).l
+	beq.s	.IntroBGPriorityReady
+	andi.w	#$7FFF,d0
+.IntroBGPriorityReady:
 	move.w	#$27,d1
 	move.w	#$1B,d2
 	bra.w	EniDec_Safe
@@ -30261,7 +30270,17 @@ DrawActorSpritePiece:
 	move.b	(a3)+,(a1)+
 	adda.l	#1,a1
 	move.b	(a3)+,(a4)+
-	move.w	(a3)+,(a1)+
+	move.w	(a3)+,d3
+	; Dialogue text uses high-priority plane tiles. Lower cutscene sprites while
+	; Cream is speaking so tall pieces cannot cover the letters. Keep Cream
+	; herself at normal priority so her animated portrait never disappears.
+	tst.b	(cream_dialogue_active).l
+	beq.s	.DialoguePriorityDone
+	cmpi.b	#$41,aMappings(a0)
+	beq.s	.DialoguePriorityDone
+	andi.w	#$7FFF,d3
+.DialoguePriorityDone:
+	move.w	d3,(a1)+
 
 	move.w	(a3)+,d3
 	add.w	aX(a0),d3

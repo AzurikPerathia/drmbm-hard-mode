@@ -80,7 +80,29 @@ def prepare_image():
     prompt_bold.alpha_composite(prompt, (1, 0))
     prompt = prompt_bold
     canvas.alpha_composite(prompt, (0, 111))
-    centred("AZURIK PERATHIA - 2026", 137)
+    author = "AZURIK PERATHIA - 2026"
+    box = draw.textbbox((0, 0), author, font=font)
+    author_x = (WIDTH - (box[2] - box[0])) // 2
+    # Draw the final 6 ourselves with a clearly open upper-right. The default
+    # glyph closes up after Mega Drive palette conversion and reads as an 8.
+    author_prefix = author[:-1]
+    draw.text((author_x, 137), author_prefix, font=font, fill=white)
+    draw.text((author_x + 1, 137), author_prefix, font=font, fill=white)
+    six_x = author_x + round(font.getlength(author_prefix))
+    six_rows = (
+        ".###..",
+        ".#....",
+        ".#....",
+        ".####.",
+        ".#...#",
+        ".#...#",
+        ".#...#",
+        "..###.",
+    )
+    for row, pixels in enumerate(six_rows):
+        for column, pixel in enumerate(pixels):
+            if pixel == "#":
+                draw.point((six_x + column, 139 + row), fill=white)
     centred("VERSION 0.2", 149)
     return canvas
 
