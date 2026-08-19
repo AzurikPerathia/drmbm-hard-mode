@@ -4,7 +4,7 @@
 from pathlib import Path
 import struct
 
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,7 +19,9 @@ PALETTE_PATHS = [
 ]
 
 WIDTH = 192
-HEIGHT = 112
+HEIGHT = 160
+LOGO_WIDTH = 160
+LOGO_HEIGHT = 92
 FIRST_TILE = 0x4B8       # VRAM $9700, immediately after the original title art.
 MAX_TILES = 0x5C0 - FIRST_TILE  # Stop before the h-scroll table at VRAM $B800.
 
@@ -45,14 +47,33 @@ def prepare_image():
     bbox = source.getchannel("A").getbbox()
     if bbox:
         source = source.crop(bbox)
-    scale = min(WIDTH / source.width, HEIGHT / source.height)
+    scale = min(LOGO_WIDTH / source.width, LOGO_HEIGHT / source.height)
     size = (round(source.width * scale), round(source.height * scale))
     source = source.resize(size, Image.Resampling.LANCZOS)
     source = ImageEnhance.Contrast(source).enhance(1.12)
     source = ImageEnhance.Color(source).enhance(1.12)
     source = source.filter(ImageFilter.UnsharpMask(radius=0.65, percent=125, threshold=2))
     canvas = Image.new("RGBA", (WIDTH, HEIGHT))
-    canvas.alpha_composite(source, ((WIDTH - size[0]) // 2, (HEIGHT - size[1]) // 2))
+    canvas.alpha_composite(source, ((WIDTH - size[0]) // 2, 2))
+
+    font = ImageFont.load_default()
+    draw = ImageDraw.Draw(canvas)
+    white = (231, 231, 231, 255)
+
+    def centred(text, y):
+        box = draw.textbbox((0, 0), text, font=font)
+        x = (WIDTH - (box[2] - box[0])) // 2
+        draw.text((x, y), text, font=font, fill=white)
+
+    # A doubled nearest-neighbour line makes the main prompt unmistakable.
+    prompt = Image.new("RGBA", (96, 12))
+    prompt_draw = ImageDraw.Draw(prompt)
+    prompt_box = prompt_draw.textbbox((0, 0), "PRESS START", font=font)
+    prompt_draw.text(((96 - (prompt_box[2] - prompt_box[0])) // 2, 0), "PRESS START", font=font, fill=white)
+    prompt = prompt.resize((192, 24), Image.Resampling.NEAREST)
+    canvas.alpha_composite(prompt, (0, 111))
+    centred("AZURIK PERATHIA - 2026", 137)
+    centred("VERSION 0.1", 149)
     return canvas
 
 
@@ -97,7 +118,7 @@ def build_assets():
             if encoded not in unique:
                 unique[encoded] = len(art_tiles)
                 art_tiles.append(encoded)
-            words.append(FIRST_TILE + unique[encoded] | (group << 13))
+            words.append(0x8000 | FIRST_TILE + unique[encoded] | (group << 13))
             preview_tiles.append(rebuilt)
 
     if len(art_tiles) > MAX_TILES:

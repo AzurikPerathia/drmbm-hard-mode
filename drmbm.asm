@@ -1977,6 +1977,7 @@ BC_Sega:
 
 BC_Title:
 	BVDP	0
+	BSND	BGM_TITLE
 	BNEM	$0000, ArtNem_TitleLogo
 	BNEM	$9700, ArtNem_NewStoryTitleLogo
 	BFRMEND
@@ -22846,8 +22847,8 @@ Title_LoadFG:
 	DISABLE_INTS
 	movem.l	d1-d2/d5/d7/a0,-(sp)
 	lea	(MapUnc_NewStoryTitleLogo).l,a0
-	move.w	#$C710,d5	; x=64, y=56 on the 128-tile-wide title plane.
-	move.w	#$D,d2
+	move.w	#$C410,d5	; x=64, y=32 on the 128-tile-wide title plane.
+	move.w	#$13,d2
 
 .Row:
 	jsr	(SetVRAMWrite).l
