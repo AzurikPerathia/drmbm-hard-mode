@@ -25,7 +25,7 @@ Version 0.2 expands the v0.1 Hard Mode release with the first playable New Story
 - The New Story logo was rebuilt as separate optimized art instead of replacing or stretching the original title assets.
 - Project documentation now names **Azurik Perathia** as the creator and author of the mod.
 
-### Corrections made after v0.1
+### Corrections made during v0.2 development
 
 - Fixed Hero Story opening the password screen instead of launching the original campaign.
 - Fixed the Dark Story and Hero Story menu labels, alignment, selection routing, and swapped story logic.
@@ -47,7 +47,11 @@ Version 0.2 expands the v0.1 Hard Mode release with the first playable New Story
 - Fixed title music not starting after the logo screen.
 - Fixed the creator year glyph so **2026** no longer resembles **2028**.
 - Fixed the displayed development version from **0.2 ALPHA** to the final **0.2**.
-- Fixed creator-name formatting and attribution in the README.
+
+### Corrections related specifically to v0.1
+
+- Corrected the creator-name formatting and mod-author attribution in the README.
+- No released v0.1 gameplay system required a compatibility fix; its Hard Mode AI, score preservation, heavy landing effects, and option behavior remain unchanged in v0.2.
 
 ### Features retained from v0.1
 
