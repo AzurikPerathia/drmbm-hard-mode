@@ -17927,7 +17927,7 @@ word_BDF4:	dc.w $28
 
 loc_BDFE:
 	move.b	#$80,6(a0)
-	clr.b	$2D(a0)
+	clr.b	(story_menu_active).l
 	clr.b	(story_route).l
 	move.w	#$220,$A(a0)
 	move.w	#$D8,$E(a0)
@@ -17976,7 +17976,7 @@ loc_BE8E:
 	move.w	#$F0,$E(a0)
 
 loc_BEA2:
-	tst.b	$2D(a0)
+	tst.b	(story_menu_active).l
 	beq.s	.OriginalLabels
 	bsr.w	DrawStoryRouteLabels
 	bra.s	.LabelsDone
@@ -18010,13 +18010,13 @@ loc_BEB4:
 ; ---------------------------------------------------------------------------
 
 loc_BEEA:
-	tst.b	$2D(a0)
+	tst.b	(story_menu_active).l
 	bne.s	.StoryRouteSelected
 	tst.w	$26(a0)
 	bne.s	.ContinueSelected
 
 	; START now opens the Dark Story / Hero Story route chooser.
-	move.b	#1,$2D(a0)
+	move.b	#1,(story_menu_active).l
 	clr.w	$26(a0)
 	move.w	#$D8,$E(a0)
 	move.b	#$80,6(a0)
@@ -18026,20 +18026,24 @@ loc_BEEA:
 .StoryRouteSelected:
 	move.w	$26(a0),d0
 	move.b	d0,(story_route).l
+	clr.b	(story_menu_active).l
 	moveq	#0,d0
 	bra.s	.Launch
 
 .ContinueSelected:
 	clr.b	(story_route).l
+	clr.b	(story_menu_active).l
 	move.w	$26(a0),d0
 	lsl.w	#2,d0
 
 .Launch:
+	move.w	d0,-(sp)
 	move.b	#1,(byte_FF0114).l 
 	move.b	(com_level).l,(difficulty).l
 	move.b	#3,(level).l ; Which Stage to start on in Story.
 	bsr.w	sub_DF74
 	bsr.w	ClearOpponentDefeats
+	move.w	(sp)+,d0
 	move.b	#0,(level_mode).l
 	move.b	d0,(bytecode_flag).l
 	clr.b	(bytecode_disabled).l

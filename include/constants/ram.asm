@@ -426,8 +426,9 @@ player_2_c		rs.b	1
 disable_samples		rs.b	1
 hard_mode		rs.b	1
 story_route		rs.b	1	; 0 = Dark Story, 1 = Hero Story prototype
+story_menu_active	rs.b	1	; Non-zero while choosing Dark Story / Hero Story
 
-			rs.b	$151
+			rs.b	$150
 byte_FFFE00		rs.b	$B0
 			rs.b	$150
 

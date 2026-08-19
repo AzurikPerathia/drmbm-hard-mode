@@ -224,9 +224,9 @@ def write_menu_assets() -> None:
     dark_tiles += [Image.new("P", (8, 8), color=12) for _ in range(10)]
 
     hero_tiles = [Image.new("P", (8, 8), color=12) for _ in range(16)]
-    hero_tiles += [Image.new("P", (8, 8), color=12) for _ in range(3)]
+    hero_tiles += [Image.new("P", (8, 8), color=12) for _ in range(1)]
     hero_tiles += [label_tile(char) for char in "HERO STORY"]
-    hero_tiles += [Image.new("P", (8, 8), color=12) for _ in range(3)]
+    hero_tiles += [Image.new("P", (8, 8), color=12) for _ in range(5)]
     hero_tiles += [Image.new("P", (8, 8), color=12) for _ in range(16)]
 
     tiles = dark_tiles + hero_tiles
