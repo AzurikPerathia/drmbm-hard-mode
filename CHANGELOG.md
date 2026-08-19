@@ -12,7 +12,8 @@ Version 0.2 expands the v0.1 Hard Mode release with the first playable New Story
 - Added the first Dark Story prototype stage against **Cream the Rabbit**, while preserving the complete original campaign as Hero Story.
 - Added an original animated introduction and a full set of expressive in-game reactions for Cream.
 - Added a dedicated Dark Story stage card and story-specific **Yeehaw / Yippee** combo voice roles.
-- Added a completely redesigned and animated *Mean Bean Machine: New Story* title screen with music, creator credit, and version information.
+- Added the new *Mean Bean Machine: New Story* logo to the title screen, with subtle animation and title music.
+- Added the title-screen text **PRESS START**, **AZURIK PERATHIA - 2026**, and **VERSION 0.2**.
 - Added Controller 2 support to the mode selector; either controller can navigate and confirm.
 
 ### Changed since v0.1
