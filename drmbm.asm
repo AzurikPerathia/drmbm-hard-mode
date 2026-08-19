@@ -27770,7 +27770,7 @@ CreamIntroDialogue:
 	; Cream starts with her back turned.
 	dc.b $85, 0
 	dc.b $83, 2
-	dc.b $81, $39, $D8, $8C
+	dc.b $81, $39, $D8, $0C
 	dc.b "Ohhh... But who is this?"
 	dc.b $83, 8
 	dc.b $82
@@ -27779,21 +27779,21 @@ CreamIntroDialogue:
 	dc.b $83, 6
 	dc.b $85, 2
 	dc.b $83, 2
-	dc.b $81, $9C, $D6, $88
+	dc.b $81, $9C, $D6, $08
 	dc.b "Oh, hello, mister! You bad guy! My mommy Vanilla always told me not to talk to strangers!"
 	dc.b $83, $1E
 	dc.b $82
 	; Polite, confident pose with one hand over her chest.
 	dc.b $85, 3
 	dc.b $83, 2
-	dc.b $81, $BC, $D5, $88
+	dc.b $81, $BC, $D5, $08
 	dc.b "But if you insist, I'm Cream the Rabbit! I'm polite and well-mannered, and I'm going to teach you to respect me!"
 	dc.b $83, $24
 	dc.b $82
 	; Shy final admission.
 	dc.b $85, 4
 	dc.b $83, 2
-	dc.b $81, $5C, $D7, $88
+	dc.b $81, $5C, $D7, $08
 	dc.b "That's what Sonic told me to say, hehe..."
 	dc.b $83, $10
 	dc.b $82

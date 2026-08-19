@@ -81,7 +81,7 @@ def prepare_image():
     prompt = prompt_bold
     canvas.alpha_composite(prompt, (0, 111))
     centred("AZURIK PERATHIA - 2026", 137)
-    centred("VERSION 0.2 ALPHA", 149)
+    centred("VERSION 0.2", 149)
     return canvas
 
 
