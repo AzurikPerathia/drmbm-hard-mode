@@ -1,9 +1,9 @@
-<h1 align="center">Dr. Robotnik's Mean Bean Machine — Hard Mode</h1>
+<h1 align="center">Dr. Robotnik's Mean Bean Machine — New Story</h1>
 
 <p align="center"><strong>A configurable challenge expansion for the Sega Mega Drive / Genesis game</strong></p>
 
 <p align="center">
-  <strong>Hard Mode mod created by <a href="https://github.com/AzurikPerathia">Azurik Perathia</a></strong>
+  <strong>New Story mod created by <a href="https://github.com/AzurikPerathia">Azurik Perathia</a></strong>
 </p>
 
 <p align="center">
