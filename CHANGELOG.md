@@ -79,5 +79,5 @@ Version 0.2 expands the v0.1 Hard Mode release with the first playable New Story
 - Introduced the optional Hard Mode feature set.
 - Added enhanced AI chain planning, randomized difficulty profiles, score preservation, heavy player landings, and combo voice changes.
 
-[v0.2]: https://github.com/AzurikPerathia/drmbm-hard-mode/compare/v0.1...v0.2
-[v0.1]: https://github.com/AzurikPerathia/drmbm-hard-mode/releases/tag/v0.1
+[v0.2]: https://github.com/AzurikPerathia/drmbm-new-story/compare/v0.1...v0.2
+[v0.1]: https://github.com/AzurikPerathia/drmbm-new-story/releases/tag/v0.1

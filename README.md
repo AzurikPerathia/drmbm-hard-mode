@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/AzurikPerathia/drmbm-hard-mode/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/AzurikPerathia/drmbm-hard-mode?style=for-the-badge&amp;label=Latest%20Release&amp;color=dd3b3b"></a>
+  <a href="https://github.com/AzurikPerathia/drmbm-new-story/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/AzurikPerathia/drmbm-new-story?style=for-the-badge&amp;label=Latest%20Release&amp;color=dd3b3b"></a>
   <a href="#building-from-source"><img alt="Platform" src="https://img.shields.io/badge/Platform-Mega%20Drive%20%2F%20Genesis-1f6feb?style=for-the-badge"></a>
   <a href="#hard-mode"><img alt="Hard Mode" src="https://img.shields.io/badge/Hard%20Mode-Optional-f0a020?style=for-the-badge"></a>
 </p>
@@ -18,11 +18,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/AzurikPerathia/drmbm-hard-mode/releases/tag/v0.2"><strong>Download v0.2</strong></a>
+  <a href="https://github.com/AzurikPerathia/drmbm-new-story/releases/tag/v0.2"><strong>Download v0.2</strong></a>
   ·
   <a href="CHANGELOG.md">Read the changelog</a>
   ·
-  <a href="https://github.com/AzurikPerathia/drmbm-hard-mode">Browse the source</a>
+  <a href="https://github.com/AzurikPerathia/drmbm-new-story">Browse the source</a>
 </p>
 
 ---
@@ -94,7 +94,7 @@ The player's beans trigger the heavy landing sound and board shake in every stag
 
 ## Download and play
 
-The latest prebuilt ROM is available from the [GitHub Releases page](https://github.com/AzurikPerathia/drmbm-hard-mode/releases/latest).
+The latest prebuilt ROM is available from the [GitHub Releases page](https://github.com/AzurikPerathia/drmbm-new-story/releases/latest).
 
 For version `v0.2`:
 
@@ -170,7 +170,7 @@ If you use this code in another ROM hack, please preserve the upstream attributi
 
 ## Contributing and support
 
-Suggestions and pull requests for this Hard Mode edition are welcome. Please use this repository's [Issues page](https://github.com/AzurikPerathia/drmbm-hard-mode/issues) for reproducible problems or enhancement ideas.
+Suggestions and pull requests for this Hard Mode edition are welcome. Please use this repository's [Issues page](https://github.com/AzurikPerathia/drmbm-new-story/issues) for reproducible problems or enhancement ideas.
 
 For general Mega Drive reverse-engineering and ROM-hacking help, these communities may also be useful:
 
