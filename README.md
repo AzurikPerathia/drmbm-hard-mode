@@ -29,7 +29,7 @@
 
 This project expands *Dr. Robotnik's Mean Bean Machine* with a much more demanding CPU opponent and several gameplay enhancements, while keeping the original experience available.
 
-The Scenario menu also includes an early **Dark Story / Hero Story** prototype. Dark Story preserves the original campaign, while Hero Story currently contains its first playable battle against Cream.
+The Scenario menu also includes an early **Hero Story / Dark Story** prototype. Hero Story preserves the original campaign against Robotnik's forces, while Dark Story begins a new route against Sonic's friends.
 
 A new **HARD MODE** option appears directly above **VS.COM LEVEL** in the Options menu. It is disabled by default and saved alongside the other game settings.
 
@@ -40,10 +40,10 @@ A new **HARD MODE** option appears directly above **VS.COM LEVEL** in the Option
 
 Choose **SCENARIO**, then **START**, to open the new route selector:
 
-- **DARK STORY** — the complete original villain campaign, unchanged.
-- **HERO STORY** — a new Sonic-character route. The current prototype contains one stage against Cream and returns to the menu after victory.
+- **DARK STORY** — a new route opposing Sonic's friends. The current prototype contains one stage against Cream and returns to the menu after victory.
+- **HERO STORY** — the complete original campaign against Robotnik and his villains, unchanged.
 
-Cream uses the original Arms dialogue as temporary placeholder text. Her custom portrait reacts during the match: she becomes visibly cheerful when she is winning and upset when her own board is close to defeat. The neutral artwork was supplied by AzurikPerathia and converted into native Mega Drive tiles, mappings, and palette data for this project.
+Cream uses the original Arms dialogue as temporary placeholder text. Her custom portrait now blinks, moves her ears, becomes visibly cheerful while winning, alternates between worried and stressed expressions near defeat, and shows a dedicated disgusted reaction after losing. Dialogue scenes use a clean full-body talking animation with alternating mouth frames. The Dark Story stage card also identifies **CREAM** beneath a blue **STAGE** label. The original neutral artwork and animation reference were supplied by AzurikPerathia and converted into native Mega Drive tiles, mappings, palettes, and animation scripts for this project.
 
 ## Hard Mode
 

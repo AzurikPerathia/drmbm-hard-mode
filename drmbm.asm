@@ -2187,6 +2187,7 @@ BC_OpponentScreen:
 	BWRITE	word_FF1122, $FFFF
 	BPUYO	$8000,	ArtPuyo_BestRecord	
 	BNEM	$8000, ArtNem_OpponentScreen
+	BNEM	$93A0, ArtNem_DarkStoryStageLabels
 	BPCMD	$1E
 	BFRMEND
 	BRUN	SpawnOpponentScrActors
@@ -2306,10 +2307,10 @@ BC_Level:
 	dc.l BC_Scenario
 	dc.l BC_Ending
 	dc.l BC_Ending
-	dc.l BC_HeroStoryComplete
+	dc.l BC_DarkStoryComplete
 	BJTBLE
 
-BC_HeroStoryComplete:
+BC_DarkStoryComplete:
 	BWRITE	story_route, 0
 	BJMP	BC_MainMenu
 
@@ -3136,6 +3137,12 @@ Pal_Arms:
 
 Pal_Cream:
 	incbin	"resources/palettes/line/new/Portrait - Cream.pal"
+
+Pal_CreamIntro:
+	incbin	"resources/palettes/line/new/Cutscene - Cream.pal"
+
+Pal_DarkStoryStageLabels:
+	incbin	"resources/palettes/line/new/Dark Story Stage Labels.pal"
 	
 Pal_ArmsIntro:
 	incbin	"resources/palettes/line/new/Cutscene - Arms.pal"
@@ -3974,13 +3981,13 @@ word_3B58:	dc.w $C
 
 LevelEnd:
 	tst.b	(story_route).l
-	beq.s	.DarkStory
+	beq.s	.OriginalStory
 	cmpi.b	#3,(level).l
-	bne.s	.DarkStory
+	bne.s	.OriginalStory
 	move.b	#3,(bytecode_flag).l
 	rts
 
-.DarkStory:
+.OriginalStory:
 	cmpi.b	#$F,(level).l
 	bcc.w	.Ending
 	addq.b	#1,(level).l
@@ -8331,15 +8338,23 @@ off_Cream:	dc.l word_CreamNeutral
 	dc.l word_CreamDefeated
 word_CreamNeutral:	dc.w $28
 	dc.l MapEni_Cream_Neutral
+	dc.w 3
+	dc.l MapEni_Cream_Blink
+	dc.w $18
+	dc.l MapEni_Cream_Neutral
+	dc.w 5
+	dc.l MapEni_Cream_Ears
 	dc.w $FF00
 word_CreamHappy:	dc.w 8
 	dc.l MapEni_Cream_Happy
 	dc.w $FF00
 word_CreamUpset:	dc.w 8
 	dc.l MapEni_Cream_Upset
+	dc.w 5
+	dc.l MapEni_Cream_Stress
 	dc.w $FF00
 word_CreamDefeated:	dc.w $32
-	dc.l MapEni_Cream_Upset
+	dc.l MapEni_Cream_Defeated
 	dc.w $FF00
 
 ; =============== S U B	R O U T	I N E =======================================
@@ -15768,7 +15783,7 @@ CreamIntroAnimations:
 	dc.l CreamIntroAnim
 	dc.l CreamIntroAnim
 CreamIntroAnim:
-	dc.b $20, 0, $FF, 0
+	dc.b 6, 0, 5, 1, $FF, 0
 	dc.l CreamIntroAnim
 	
 off_AC48:	
@@ -16517,7 +16532,7 @@ loc_B102:
 	bne.s	.StandardOpponentPalette
 	tst.b	(story_route).l
 	beq.s	.StandardOpponentPalette
-	lea	(Pal_Cream).l,a2
+	lea	(Pal_CreamIntro).l,a2
 	bra.s	.OpponentPaletteReady
 
 .StandardOpponentPalette:
@@ -18025,6 +18040,7 @@ loc_BEEA:
 
 .StoryRouteSelected:
 	move.w	$26(a0),d0
+	eori.b	#1,d0	; DARK launches Cream's route; HERO launches the original campaign.
 	move.b	d0,(story_route).l
 	clr.b	(story_menu_active).l
 	moveq	#0,d0
@@ -20505,6 +20521,11 @@ ActOpponentScr_Update:
 .GetNumberTile:
 	addi.w	#$8475,d0
 	lea	(.StageTextTiles).l,a2
+	tst.b	(story_route).l
+	beq.s	.StageTilesReady
+	lea	(.CreamStageTextTiles).l,a2
+
+.StageTilesReady:
 	lea	(eni_tilemap_buffer).l,a1
 	move.w	#1,d1
 
@@ -20523,11 +20544,37 @@ ActOpponentScr_Update:
 	move.w	d0,(a1)+
 	addi.w	#$A,d0
 	dbf	d1,.DrawStageHdrLine
+	tst.b	(story_route).l
+	beq.s	.QueueStageText
+	lea	(Pal_DarkStoryStageLabels).l,a2
+	moveq	#2,d0
+	jsr	(LoadPalette).l
+	lea	(.CreamNameTiles).l,a2
+	moveq	#4,d1
+
+.CopyHeroName:
+	move.w	(a2)+,(a1)+
+	dbf	d1,.CopyHeroName
+
+.QueueStageText:
 	lea	(eni_tilemap_queue).l,a1
 	move.w	#1,(a1)+
+	tst.b	(story_route).l
+	beq.s	.QueueStageOnly
+	move.w	#2,-2(a1)
+
+.QueueStageOnly:
 	move.w	#7,(a1)+
 	move.w	#1,(a1)+
 	move.w	d5,(a1)+
+	tst.b	(story_route).l
+	beq.s	.StageQueueDone
+	move.w	#1,(a1)+
+	move.w	#5,(a1)+
+	move.w	#0,(a1)+
+	move.w	#$C8C0,(a1)+
+
+.StageQueueDone:
 	rts
 ; ---------------------------------------------------------------------------
 .StageTextTiles:	; Next Opponenet - STAGE #
@@ -20543,6 +20590,13 @@ ActOpponentScr_Update:
 	dc.w $849B
 	dc.w $849C
 	dc.w 0
+
+.CreamStageTextTiles:	; STAGE on blue, using the dedicated label palette on line 2
+	dc.w $C49D, $C49E, $C49F, $C4A0, $C4A1, 0
+	dc.w $C4A2, $C4A3, $C4A4, $C4A5, $C4A6, 0
+
+.CreamNameTiles:	; CREAM on white, using the dedicated label palette on line 2
+	dc.w $C4A7, $C4A8, $C4A9, $C4AA, $C4AB
 ; ---------------------------------------------------------------------------
 
 ActOpponentScr_Done:
@@ -33673,15 +33727,12 @@ SpriteMappings:
 ; --------------------------------------------------------------
 
 Sprite_Cutscene_Cream:
-	dc.l Sprite_Cutscene_Cream_Frame
-Sprite_Cutscene_Cream_Frame:
-	dc.w 6
-	dc.w 0,   $F02, $E400, $FFD8
-	dc.w 0,   $F02, $E410, $FFF8
-	dc.w 0,   $D02, $E420, $18
-	dc.w $20, $B02, $E428, $FFD8
-	dc.w $20, $B02, $E434, $FFF8
-	dc.w $20, $902, $E440, $18
+	dc.l Sprite_Cutscene_Cream_Closed
+	dc.l Sprite_Cutscene_Cream_Open
+Sprite_Cutscene_Cream_Closed:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Closed).map"
+Sprite_Cutscene_Cream_Open:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Open).map"
 
 ; --------------------------------------------------------------
 	
@@ -46218,12 +46269,28 @@ MapEni_Cream_Neutral:
 	incbin	"resources/mappings/background/map_eni/compressed/Portrait - Cream (Neutral).eni"
 	even
 
+MapEni_Cream_Blink:
+	incbin	"resources/mappings/background/map_eni/compressed/Portrait - Cream (Blink).eni"
+	even
+
+MapEni_Cream_Ears:
+	incbin	"resources/mappings/background/map_eni/compressed/Portrait - Cream (Ears).eni"
+	even
+
 MapEni_Cream_Happy:
 	incbin	"resources/mappings/background/map_eni/compressed/Portrait - Cream (Happy).eni"
 	even
 
 MapEni_Cream_Upset:
 	incbin	"resources/mappings/background/map_eni/compressed/Portrait - Cream (Upset).eni"
+	even
+
+MapEni_Cream_Stress:
+	incbin	"resources/mappings/background/map_eni/compressed/Portrait - Cream (Stress).eni"
+	even
+
+MapEni_Cream_Defeated:
+	incbin	"resources/mappings/background/map_eni/compressed/Portrait - Cream (Defeated).eni"
 	even
 	
 ; ---------------------------------------------------------------------------
@@ -46234,6 +46301,10 @@ ArtNem_IntroBadniks:
 	
 ArtNem_OpponentScreen:
 	incbin	"resources/art/art_nem/compressed/Next Opponent.nem"
+	even
+
+ArtNem_DarkStoryStageLabels:
+	incbin	"resources/art/art_nem/compressed/Dark Story Stage Labels.nem"
 	even
 	
 ArtNem_Password:
