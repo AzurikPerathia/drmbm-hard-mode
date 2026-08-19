@@ -2055,6 +2055,7 @@ BC_GameIntro:
 BC_MainMenu:
 	BVDP	0
 	BSND	BGM_MENU
+	BRUN	PrepareMainMenuControls
 	BNEM	$3200, ArtNem_MainMenu
 	BNEM	$7360, ArtNem_HeroStoryMenu
 	BFRMEND
@@ -17545,7 +17546,10 @@ sub_BADA:
 	jsr	(nullsub_3).l
 	bsr.w	sub_BB50
 	jsr	(ActorAnimate).l
-	jsr	(GetCtrlData).l
+	; The mode-select screen is always driven by controller 1.  The original
+	; title could leave swap_controls pointing at controller 2, making this
+	; menu appear completely frozen after the shortened title sequence.
+	move.w	(p1_ctrl_hold).l,d0
 	move.b	d0,d1
 	andi.b	#$F0,d0
 	bne.w	loc_BB62
@@ -21486,6 +21490,19 @@ loc_E000:
 	dbf	d0,loc_E000
 	rts
 ; End of function InitTitleFlags
+
+
+; =============== S U B R O U T I N E =====================================
+
+PrepareMainMenuControls:
+	; Start the menu from a deterministic controller state and discard the
+	; START edge which dismissed the title screen.
+	clr.b	(swap_controls).l
+	clr.b	(byte_FF196A).l
+	clr.b	(p1_ctrl_press).l
+	clr.b	(p2_ctrl_press).l
+	rts
+; End of function PrepareMainMenuControls
 
 
 ; =============== S U B	R O U T	I N E =======================================

@@ -72,8 +72,13 @@ def prepare_image():
     prompt_box = prompt_draw.textbbox((0, 0), "PRESS START", font=font)
     prompt_x = (96 - (prompt_box[2] - prompt_box[0])) // 2
     prompt_draw.text((prompt_x, 0), "PRESS START", font=font, fill=white)
-    prompt_draw.text((prompt_x + 1, 0), "PRESS START", font=font, fill=white)
     prompt = prompt.resize((192, 24), Image.Resampling.NEAREST)
+    # One extra output pixel gives a medium weight: thicker than the first
+    # version, but much lighter than doubling a source pixel before scaling.
+    prompt_bold = Image.new("RGBA", prompt.size)
+    prompt_bold.alpha_composite(prompt)
+    prompt_bold.alpha_composite(prompt, (1, 0))
+    prompt = prompt_bold
     canvas.alpha_composite(prompt, (0, 111))
     centred("AZURIK PERATHIA - 2026", 137)
     centred("VERSION 0.2 ALPHA", 149)
