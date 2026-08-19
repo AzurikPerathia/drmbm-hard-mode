@@ -15477,6 +15477,7 @@ unk_A90A:	dc.b   7
 
 
 LoadOpponentIntro:
+	clr.b	(cream_dialogue_active).l
 	clr.l	d0
 	move.b	(opponent).l,d0
 	cmpi.b	#OPP_ARMS,d0
@@ -15655,6 +15656,20 @@ loc_AAAA:
 	clr.w	aAnimTime(a0)
 
 loc_AACA:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.w	.RunOpponentAnimation
+	tst.b	(story_route).l
+	beq.w	.RunOpponentAnimation
+	tst.b	(cream_dialogue_active).l
+	bne.w	.RunOpponentAnimation
+
+	; Keep Cream's mouth firmly closed outside an active dialogue box.
+	clr.b	aFrame(a0)
+	clr.b	aAnimTime(a0)
+	move.l	#CreamIntroAnim,aAnim(a0)
+	rts
+
+.RunOpponentAnimation:
 	bra.w	ActorAnimate
 ; ---------------------------------------------------------------------------
 
@@ -20565,7 +20580,7 @@ ActOpponentScr_Update:
 	; STAGE 1 header above it.
 	DISABLE_INTS
 	lea	(.CreamNameTiles).l,a2
-	move.w	#$C100,d5
+	move.w	#$C140,d5
 	moveq	#1,d2
 
 .WriteCreamNameRow:
@@ -27407,6 +27422,13 @@ loc_1117A:
 	jsr	(QueuePlaneCmd).l
 	bsr.w	sub_112D8
 	move.b	#$FF,7(a0)
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.DialogueFlagDone
+	tst.b	(story_route).l
+	beq.s	.DialogueFlagDone
+	move.b	#1,(cream_dialogue_active).l
+
+.DialogueFlagDone:
 	rts
 ; ---------------------------------------------------------------------------
 
@@ -27424,6 +27446,7 @@ sub_11192:
 
 loc_1119C:
 	clr.b	7(a0)
+	clr.b	(cream_dialogue_active).l
 	bsr.w	sub_111B0
 	ori.w	#$8D00,d0
 	swap	d0

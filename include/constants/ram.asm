@@ -427,8 +427,9 @@ disable_samples		rs.b	1
 hard_mode		rs.b	1
 story_route		rs.b	1	; 0 = Dark Story, 1 = Hero Story prototype
 story_menu_active	rs.b	1	; Non-zero while choosing Dark Story / Hero Story
+cream_dialogue_active	rs.b	1	; Cream talks only while the level-intro text box is visible
 
-			rs.b	$150
+			rs.b	$14F
 byte_FFFE00		rs.b	$B0
 			rs.b	$150
 
