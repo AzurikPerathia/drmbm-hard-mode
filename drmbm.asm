@@ -21326,9 +21326,71 @@ InitTitle:
 	jsr	(FindActorSlot).l
 	bcs.s	.Done
 	move.b	#1,aField26(a1)
+	lea	(ActNewStoryTitleMotion).l,a1
+	jsr	(FindActorSlot).l
 
 .Done:
 	rts
+
+; ---------------------------------------------------------------------------
+; Give the New Story logo a very small horizontal float and briefly blink
+; the informational text once per second.
+; ---------------------------------------------------------------------------
+
+ActNewStoryTitleMotion:
+	tst.w	(word_FF1126).l
+	bne.s	.Done
+	addq.b	#1,aField26(a0)
+	cmpi.b	#$36,aField26(a0)	; Hide after 54 frames.
+	beq.s	.HideText
+	cmpi.b	#$3A,aField26(a0)	; Return only four frames later.
+	beq.s	.ShowText
+	cmpi.b	#$3C,aField26(a0)
+	bcs.s	.Motion
+	clr.b	aField26(a0)
+	bra.s	.Motion
+
+.HideText:
+	move.l	#TitleTextHideCmd,d0
+	jsr	(QueuePlaneCmd).l
+	bra.s	.Motion
+
+.ShowText:
+	move.l	#TitleTextShowCmd,d0
+	jsr	(QueuePlaneCmd).l
+
+.Motion:
+	addq.w	#1,aAnimTime(a0)
+	move.w	aAnimTime(a0),d0
+	andi.w	#7,d0
+	bne.s	.Done
+	addq.b	#1,aField28(a0)
+	andi.w	#7,d0
+	move.b	aField28(a0),d0
+	andi.w	#7,d0
+	lea	NewStoryTitleMotion(pc),a1
+	move.b	(a1,d0.w),d0
+	ext.w	d0
+	move.w	d0,(hscroll_buffer).l
+
+.Done:
+	rts
+
+NewStoryTitleMotion:
+	dc.b 0, 1, 2, 1, 0, -1, -2, -1
+	even
+
+TitleTextHideCmd:
+	dc.w 0
+	dc.b $18, 7
+	dc.w $D110
+	dc.w 0
+
+TitleTextShowCmd:
+	dc.w 8
+	dc.b $18, 7
+	dc.w $D110
+	dc.l MapUnc_NewStoryTitleLogo+$270
 
 ; ---------------------------------------------------------------------------
 
@@ -21645,38 +21707,9 @@ ActTitleHandler:
 ; ---------------------------------------------------------------------------
 
 .SetupScr:
-	move.w	#2,(word_FF1126).l
-	move.w	#$160,(hscroll_buffer).l
-	move.w	#0,(vscroll_buffer).l
-	bsr.w	sub_E202
-	move.w	#$1E,d0
-	jsr	(ActorBookmark_SetDelay).l
-	jsr	(ActorBookmark).l
-	moveq	#3,d3
-
-.FadeToPal:
-	lea	(Palette_Table).l,a2
-	move.l	d3,d0
-	move.l	d0,d2
-	addi.w	#(Pal_Title1-Palette_Table)>>5,d2
-	lsl.w	#5,d2
-	adda.l	d2,a2
-	moveq	#0,d1
-	jsr	(FadeToPalette).l
-	dbf	d3,.FadeToPal
-	jsr	(ActorBookmark).l
-	jsr	(CheckPaletteFade).l
-	bcc.w	.Delay
-	rts
-; ---------------------------------------------------------------------------
-
-.Delay:
-	move.w	#3,(word_FF1126).l
-	move.w	#$3C,d0
-	jsr	(ActorBookmark_SetDelay).l
-	jsr	(ActorBookmark).l
 	move.w	#$FFFF,(word_FF1126).l
-	jmp	(ActorDeleteSelf).l
+	clr.l	(hscroll_buffer).l
+	bra.w	loc_ECE8
 ; End of function ActTitleHandler
 
 

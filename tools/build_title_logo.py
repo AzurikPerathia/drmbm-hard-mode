@@ -20,8 +20,8 @@ PALETTE_PATHS = [
 
 WIDTH = 192
 HEIGHT = 160
-LOGO_WIDTH = 160
-LOGO_HEIGHT = 92
+LOGO_WIDTH = 152
+LOGO_HEIGHT = 88
 FIRST_TILE = 0x4B8       # VRAM $9700, immediately after the original title art.
 MAX_TILES = 0x5C0 - FIRST_TILE  # Stop before the h-scroll table at VRAM $B800.
 
@@ -64,16 +64,19 @@ def prepare_image():
         box = draw.textbbox((0, 0), text, font=font)
         x = (WIDTH - (box[2] - box[0])) // 2
         draw.text((x, y), text, font=font, fill=white)
+        draw.text((x + 1, y), text, font=font, fill=white)
 
     # A doubled nearest-neighbour line makes the main prompt unmistakable.
     prompt = Image.new("RGBA", (96, 12))
     prompt_draw = ImageDraw.Draw(prompt)
     prompt_box = prompt_draw.textbbox((0, 0), "PRESS START", font=font)
-    prompt_draw.text(((96 - (prompt_box[2] - prompt_box[0])) // 2, 0), "PRESS START", font=font, fill=white)
+    prompt_x = (96 - (prompt_box[2] - prompt_box[0])) // 2
+    prompt_draw.text((prompt_x, 0), "PRESS START", font=font, fill=white)
+    prompt_draw.text((prompt_x + 1, 0), "PRESS START", font=font, fill=white)
     prompt = prompt.resize((192, 24), Image.Resampling.NEAREST)
     canvas.alpha_composite(prompt, (0, 111))
     centred("AZURIK PERATHIA - 2026", 137)
-    centred("VERSION 0.1", 149)
+    centred("VERSION 0.2 ALPHA", 149)
     return canvas
 
 
