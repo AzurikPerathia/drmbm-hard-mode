@@ -29,10 +29,21 @@
 
 This project expands *Dr. Robotnik's Mean Bean Machine* with a much more demanding CPU opponent and several gameplay enhancements, while keeping the original experience available.
 
+The Scenario menu also includes an early **Dark Story / Hero Story** prototype. Dark Story preserves the original campaign, while Hero Story currently contains its first playable battle against Cream.
+
 A new **HARD MODE** option appears directly above **VS.COM LEVEL** in the Options menu. It is disabled by default and saved alongside the other game settings.
 
 - **HARD MODE: OFF** — restores the original gameplay behavior.
 - **HARD MODE: ON** — enables every enhancement included in this project.
+
+## Story modes
+
+Choose **SCENARIO**, then **START**, to open the new route selector:
+
+- **DARK STORY** — the complete original villain campaign, unchanged.
+- **HERO STORY** — a new Sonic-character route. The current prototype contains one stage against Cream and returns to the menu after victory.
+
+Cream uses the original Arms dialogue as temporary placeholder text. Her custom portrait reacts during the match: she becomes visibly cheerful when she is winning and upset when her own board is close to defeat. The neutral artwork was supplied by AzurikPerathia and converted into native Mega Drive tiles, mappings, and palette data for this project.
 
 ## Hard Mode
 

@@ -2051,6 +2051,7 @@ BC_MainMenu:
 	BVDP	0
 	BSND	BGM_MENU
 	BNEM	$3200, ArtNem_MainMenu
+	BNEM	$7360, ArtNem_HeroStoryMenu
 	BFRMEND
 	BRUN	LoadMainMenuMap
 	BFRMEND
@@ -2305,7 +2306,12 @@ BC_Level:
 	dc.l BC_Scenario
 	dc.l BC_Ending
 	dc.l BC_Ending
+	dc.l BC_HeroStoryComplete
 	BJTBLE
+
+BC_HeroStoryComplete:
+	BWRITE	story_route, 0
+	BJMP	BC_MainMenu
 
 BC_GameOver:
 	BVDP	1
@@ -3127,6 +3133,9 @@ Pal_SirFfuzzyLogik:
 	
 Pal_Arms:
 	incbin	"resources/palettes/line/new/Portrait - Arms.pal"
+
+Pal_Cream:
+	incbin	"resources/palettes/line/new/Portrait - Cream.pal"
 	
 Pal_ArmsIntro:
 	incbin	"resources/palettes/line/new/Cutscene - Arms.pal"
@@ -3964,6 +3973,14 @@ word_3B58:	dc.w $C
 ; --------------------------------------------------------------
 
 LevelEnd:
+	tst.b	(story_route).l
+	beq.s	.DarkStory
+	cmpi.b	#3,(level).l
+	bne.s	.DarkStory
+	move.b	#3,(bytecode_flag).l
+	rts
+
+.DarkStory:
 	cmpi.b	#$F,(level).l
 	bcc.w	.Ending
 	addq.b	#1,(level).l
@@ -7673,9 +7690,18 @@ loc_6084:
 	movem.l	d2-d3/a0,-(sp)
 	clr.w	d1
 	move.b	(opponent).l,d1
+	cmpi.b	#OPP_ARMS,d1
+	bne.s	.GetStandardArt
+	tst.b	(story_route).l
+	beq.s	.GetStandardArt
+	lea	(ArtNem_Cream).l,a0
+	bra.s	.ArtReady
+
+.GetStandardArt:
 	lsl.w	#2,d1
 	lea	(OpponentArt).l,a0
 	movea.l	(a0,d1.w),a0
+.ArtReady:
 	DISABLE_INTS
 	jsr	(NemDec).l
 	ENABLE_INTS
@@ -7716,11 +7742,7 @@ loc_610C:
 	cmp.w	$26(a0),d0
 	beq.w	loc_6144
 	move.w	d0,$26(a0)
-	lea	(OpponentMappings).l,a1
-	clr.w	d1
-	move.b	(opponent).l,d1
-	lsl.w	#2,d1
-	movea.l	(a1,d1.w),a1
+	bsr.w	GetOpponentMappingTable
 	add.w	$28(a0),d0
 	lsl.w	#2,d0
 	movea.l	(a1,d0.w),a1
@@ -7738,11 +7760,8 @@ loc_6150:
 	movea.l	$32(a0),a2
 	move.w	(a2)+,d0
 	bge.s	loc_617E
-	lea	(OpponentMappings).l,a2
-	clr.w	d0
-	move.b	(opponent).l,d0
-	lsl.w	#2,d0
-	movea.l	(a2,d0.w),a2
+	bsr.w	GetOpponentMappingTable
+	movea.l	a1,a2
 	move.w	$26(a0),d0
 	lsl.w	#2,d0
 	movea.l	(a2,d0.w),a2
@@ -7772,16 +7791,29 @@ loc_617E:
 ; End of function sub_60F4
 
 
+; Return the active board portrait animation table in a1.
+GetOpponentMappingTable:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.Standard
+	tst.b	(story_route).l
+	beq.s	.Standard
+	lea	(off_Cream).l,a1
+	rts
+
+.Standard:
+	lea	(OpponentMappings).l,a1
+	clr.w	d1
+	move.b	(opponent).l,d1
+	lsl.w	#2,d1
+	movea.l	(a1,d1.w),a1
+	rts
+
+
 ; =============== S U B	R O U T	I N E =======================================
 
 
 sub_61C0:
-	clr.l	d0
-	move.b	(opponent).l,d0
-	move.b	OpponentPalettes(pc,d0.w),d0
-	lsl.w	#5,d0
-	lea	(Palette_Table).l,a2
-	adda.l	d0,a2
+	bsr.s	GetOpponentPortraitPalette
 	move.b	#3,d0
 	jmp	(LoadPalette).l
 ; End of function sub_61C0
@@ -7791,17 +7823,30 @@ sub_61C0:
 
 
 sub_61E0:
+	bsr.s	GetOpponentPortraitPalette
+	move.w	$A(a1),d0
+	rol.w	#3,d0
+	andi.b	#$B,d0
+	jmp	(LoadPalette).l
+; End of function sub_61E0
+
+
+GetOpponentPortraitPalette:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.Standard
+	tst.b	(story_route).l
+	beq.s	.Standard
+	lea	(Pal_Cream).l,a2
+	rts
+
+.Standard:
 	clr.l	d0
 	move.b	(opponent).l,d0
 	move.b	OpponentPalettes(pc,d0.w),d0
 	lsl.w	#5,d0
 	lea	(Palette_Table).l,a2
 	adda.l	d0,a2
-	move.w	$A(a1),d0
-	rol.w	#3,d0
-	andi.b	#$B,d0
-	jmp	(LoadPalette).l
-; End of function sub_61E0
+	rts
 
 ; ---------------------------------------------------------------------------
 OpponentPalettes:
@@ -8280,6 +8325,23 @@ word_6786:	dc.w $32
 	dc.l MapEni_Arms_Defeated
 	dc.w $FF00
 
+off_Cream:	dc.l word_CreamNeutral
+	dc.l word_CreamHappy
+	dc.l word_CreamUpset
+	dc.l word_CreamDefeated
+word_CreamNeutral:	dc.w $28
+	dc.l MapEni_Cream_Neutral
+	dc.w $FF00
+word_CreamHappy:	dc.w 8
+	dc.l MapEni_Cream_Happy
+	dc.w $FF00
+word_CreamUpset:	dc.w 8
+	dc.l MapEni_Cream_Upset
+	dc.w $FF00
+word_CreamDefeated:	dc.w $32
+	dc.l MapEni_Cream_Upset
+	dc.w $FF00
+
 ; =============== S U B	R O U T	I N E =======================================
 
 
@@ -8291,11 +8353,20 @@ sub_678E:
 ; ---------------------------------------------------------------------------
 
 loc_679E:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.StandardEffect
+	tst.b	(story_route).l
+	bne.s	.NoEffect
+
+.StandardEffect:
 	clr.l	d0
 	move.b	(opponent).l,d0
 	lsl.w	#2,d0
 	movea.l	off_67AE(pc,d0.w),a1
 	jmp	(a1)
+
+.NoEffect:
+	rts
 ; End of function sub_678E
 
 ; ---------------------------------------------------------------------------
@@ -15393,6 +15464,13 @@ LoadOpponentIntro:
 	move.b	(opponent).l,d0
 	cmpi.b	#OPP_ARMS,d0
 	bne.s	.ChkRobotnik
+	tst.b	(story_route).l
+	beq.s	.ArmsArt
+	lea	(ArtNem_CreamIntro).l,a0
+	move.w	#$8000,d0
+	bra.s	.DoArtLoad
+
+.ArmsArt:
 	lea	(ArtNem_ArmsIntro2).l,a0
 	move.w	#$6000,d0
 	DISABLE_INTS
@@ -15445,6 +15523,13 @@ loc_A9B0:
 
 loc_A9C0:
 	move.b	#$FF,aField7(a1)
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.StandardMapping
+	tst.b	(story_route).l
+	beq.s	.StandardMapping
+	move.b	#$41,d1
+
+.StandardMapping:
 	move.b	d1,aMappings(a1)
 	move.b	#$80,aDrawFlags(a1)
 	lsl.w	#2,d0
@@ -15531,6 +15616,17 @@ ActOpponentIntro:
 loc_AAAA:
 	clr.w	d1
 	move.b	(opponent).l,d1
+	cmpi.b	#OPP_ARMS,d1
+	bne.s	.StandardAnimation
+	tst.b	(story_route).l
+	beq.s	.StandardAnimation
+	lea	(CreamIntroAnimations).l,a2
+	lsl.w	#2,d0
+	move.l	(a2,d0.w),aAnim(a0)
+	clr.w	aAnimTime(a0)
+	bra.s	loc_AACA
+
+.StandardAnimation:
 	lea	(off_AC48).l,a1
 	lsl.w	#2,d1
 	movea.l	(a1,d1.w),a2
@@ -15661,6 +15757,19 @@ off_ABC8:
 	dc.l ArtNem_RobotnikShip
 	dc.l ArtNem_RobotnikShip
 	dc.l ArtUnc_Robotnik_0
+
+CreamIntroAnimations:
+	dc.l CreamIntroAnim
+	dc.l CreamIntroAnim
+	dc.l CreamIntroAnim
+	dc.l CreamIntroAnim
+	dc.l CreamIntroAnim
+	dc.l CreamIntroAnim
+	dc.l CreamIntroAnim
+	dc.l CreamIntroAnim
+CreamIntroAnim:
+	dc.b $20, 0, $FF, 0
+	dc.l CreamIntroAnim
 	
 off_AC48:	
 	dc.l off_AC8C
@@ -16404,12 +16513,21 @@ loc_B102:
 	lea	(Palette_Table).l,a2
 	adda.l	#(Pal_IntroSky1_Puyo-Palette_Table),a2
 	jsr	(FadeToPalette).l
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.StandardOpponentPalette
+	tst.b	(story_route).l
+	beq.s	.StandardOpponentPalette
+	lea	(Pal_Cream).l,a2
+	bra.s	.OpponentPaletteReady
+
+.StandardOpponentPalette:
 	clr.l	d0
 	move.b	(opponent).l,d0
 	move.b	OpponentIntroPals(pc,d0.w),d0
 	lsl.w	#5,d0
 	lea	(Palette_Table).l,a2
 	adda.l	d0,a2
+.OpponentPaletteReady:
 	move.b	#3,d0
 	move.b	#0,d1
 	jmp	(FadeToPalette).l
@@ -17809,6 +17927,8 @@ word_BDF4:	dc.w $28
 
 loc_BDFE:
 	move.b	#$80,6(a0)
+	clr.b	$2D(a0)
+	clr.b	(story_route).l
 	move.w	#$220,$A(a0)
 	move.w	#$D8,$E(a0)
 	move.b	#OPP_FRANKLY,(opponent).l
@@ -17856,7 +17976,14 @@ loc_BE8E:
 	move.w	#$F0,$E(a0)
 
 loc_BEA2:
+	tst.b	$2D(a0)
+	beq.s	.OriginalLabels
+	bsr.w	DrawStoryRouteLabels
+	bra.s	.LabelsDone
+
+.OriginalLabels:
 	jsr	(sub_BAC8).l
+.LabelsDone:
 	move.b	#$42,d0
 	bsr.w	PlaySound_ChkPCM
 	bra.s	loc_BE44
@@ -17883,19 +18010,49 @@ loc_BEB4:
 ; ---------------------------------------------------------------------------
 
 loc_BEEA:
+	tst.b	$2D(a0)
+	bne.s	.StoryRouteSelected
+	tst.w	$26(a0)
+	bne.s	.ContinueSelected
+
+	; START now opens the Dark Story / Hero Story route chooser.
+	move.b	#1,$2D(a0)
+	clr.w	$26(a0)
+	move.w	#$D8,$E(a0)
+	move.b	#$80,6(a0)
+	bsr.w	DrawStoryRouteLabels
+	bra.w	loc_BE44
+
+.StoryRouteSelected:
+	move.w	$26(a0),d0
+	move.b	d0,(story_route).l
+	moveq	#0,d0
+	bra.s	.Launch
+
+.ContinueSelected:
+	clr.b	(story_route).l
+	move.w	$26(a0),d0
+	lsl.w	#2,d0
+
+.Launch:
 	move.b	#1,(byte_FF0114).l 
 	move.b	(com_level).l,(difficulty).l
 	move.b	#3,(level).l ; Which Stage to start on in Story.
 	bsr.w	sub_DF74
 	bsr.w	ClearOpponentDefeats
-	move.w	$26(a0),d0
-	lsl.w	#2,d0
 	move.b	#0,(level_mode).l
 	move.b	d0,(bytecode_flag).l
 	clr.b	(bytecode_disabled).l
 	jsr	(ActorBookmark).l
 	rts
 ; END OF FUNCTION CHUNK	FOR sub_BADA
+
+
+DrawStoryRouteLabels:
+	move.w	$26(a0),d0
+	andi.w	#1,d0
+	addi.w	#50,d0
+	jmp	(QueuePlaneCmdList).l
 
 ; =============== S U B	R O U T	I N E =======================================
 
@@ -20406,11 +20563,21 @@ loc_D7CE:
 	move.w	d5,d0
 	andi.w	#$F,d0
 	beq.s	loc_D7EC
+	cmpi.w	#OPP_ARMS,d0
+	bne.s	.StandardPreviewArt
+	tst.b	(story_route).l
+	beq.s	.StandardPreviewArt
+	lea	(ArtNem_Cream).l,a0
+	moveq	#0,d0
+	bra.s	.LoadPreviewArt
+
+.StandardPreviewArt:
 	lea	(dword_D916).l,a2
 	lsl.w	#4,d0
 	adda.w	d0,a2
 	move.w	$C(a2),d0
 	movea.l	(a2),a0
+.LoadPreviewArt:
 	jsr	(NemDec).l
 
 loc_D7EC:
@@ -20496,6 +20663,22 @@ loc_D880:
 	move.w	aField26(a0),d4
 	move.l	a0,-(sp)
 	move.w	$E(a2),d0
+	cmpi.w	#OPP_ARMS,d6
+	bne.s	.StandardPreviewMap
+	tst.b	(story_route).l
+	beq.s	.StandardPreviewMap
+	lea	(opponents_defeated).l,a3
+	tst.b	(a3,d6.w)
+	beq.s	.CreamNeutral
+	lea	(MapEni_Cream_Upset).l,a0
+	andi.w	#$7FFF,d0
+	bra.s	loc_D8C8
+
+.CreamNeutral:
+	lea	(MapEni_Cream_Neutral).l,a0
+	bra.s	loc_D8C8
+
+.StandardPreviewMap:
 	lea	(opponents_defeated).l,a3
 	tst.b	(a3,d6.w)
 	beq.s	loc_D8C4
@@ -20515,11 +20698,20 @@ loc_D8C8:
 	movea.l	(sp)+,a0
 	clr.l	d1
 	move.w	d6,d2
+	cmpi.w	#OPP_ARMS,d2
+	bne.s	.StandardPreviewPalette
+	tst.b	(story_route).l
+	beq.s	.StandardPreviewPalette
+	lea	(Pal_Cream).l,a2
+	bra.s	.PreviewPaletteReady
+
+.StandardPreviewPalette:
 	lea	(OpponentPalettes).l,a1
 	move.b	(a1,d2.w),d1
 	lsl.w	#5,d1
 	lea	(Palette_Table).l,a2
 	adda.l	d1,a2
+.PreviewPaletteReady:
 	move.b	byte_D906(pc,d6.w),d0
 	clr.w	d1
 	jsr	(FadeToPalette).l
@@ -33472,7 +33664,21 @@ SpriteMappings:
 	dc.l off_17748
 	dc.l off_17748
 	dc.l off_19610
+	dc.l Sprite_Cutscene_Cream
 	
+; --------------------------------------------------------------
+
+Sprite_Cutscene_Cream:
+	dc.l Sprite_Cutscene_Cream_Frame
+Sprite_Cutscene_Cream_Frame:
+	dc.w 6
+	dc.w 0,   $F02, $E400, $FFD8
+	dc.w 0,   $F02, $E410, $FFF8
+	dc.w 0,   $D02, $E420, $18
+	dc.w $20, $B02, $E428, $FFD8
+	dc.w $20, $B02, $E434, $FFF8
+	dc.w $20, $902, $E440, $18
+
 ; --------------------------------------------------------------
 	
 off_13A44:	dc.l word_13A5C
@@ -40826,6 +41032,8 @@ PlaneCmdLists: 		; List of Plane Mappings (uncompressed)
 	dc.l word_1D39C ; 47 = 
 	dc.l word_1D540 ; 48 = 
 	dc.l word_1D630 ; 49 = 
+	dc.l word_HeroStoryDarkSelected ; 50 = DARK STORY selected
+	dc.l word_HeroStoryHeroSelected ; 51 = HERO STORY selected
 	
 word_1CA24:	dc.w 1
 	dc.l word_1CA2A
@@ -41005,6 +41213,36 @@ word_1CC14:	dc.w $14
 	dc.w $CD6A
 	dc.l byte_223B8
 	dc.w $E190
+word_HeroStoryDarkSelected:	dc.w 2
+	dc.l word_HeroStoryDarkTopSelected
+	dc.l word_HeroStoryHeroBottomNormal
+word_HeroStoryDarkTopSelected:	dc.w $14
+	dc.b $A
+	dc.b 3
+	dc.w $CA6C
+	dc.l MapUnc_HeroStoryDark
+	dc.w $E39B
+word_HeroStoryHeroBottomNormal:	dc.w $14
+	dc.b $10
+	dc.b 3
+	dc.w $CD6A
+	dc.l MapUnc_HeroStoryHero
+	dc.w $839B
+word_HeroStoryHeroSelected:	dc.w 2
+	dc.l word_HeroStoryDarkTopNormal
+	dc.l word_HeroStoryHeroBottomSelected
+word_HeroStoryDarkTopNormal:	dc.w $14
+	dc.b $A
+	dc.b 3
+	dc.w $CA6C
+	dc.l MapUnc_HeroStoryDark
+	dc.w $839B
+word_HeroStoryHeroBottomSelected:	dc.w $14
+	dc.b $10
+	dc.b 3
+	dc.w $CD6A
+	dc.l MapUnc_HeroStoryHero
+	dc.w $E39B
 word_1CC20:	dc.w 1
 	dc.l word_1CC26
 word_1CC26:	dc.w $14
@@ -45967,6 +46205,22 @@ MapEni_Arms_Defeated:
 MapEni_Arms_8:	
 	incbin	"resources/mappings/background/map_eni/compressed/Portrait - Arms (Normal 1).eni"
 	even
+
+ArtNem_Cream:
+	incbin	"resources/art/art_nem/compressed/Portrait - Cream.nem"
+	even
+
+MapEni_Cream_Neutral:
+	incbin	"resources/mappings/background/map_eni/compressed/Portrait - Cream (Neutral).eni"
+	even
+
+MapEni_Cream_Happy:
+	incbin	"resources/mappings/background/map_eni/compressed/Portrait - Cream (Happy).eni"
+	even
+
+MapEni_Cream_Upset:
+	incbin	"resources/mappings/background/map_eni/compressed/Portrait - Cream (Upset).eni"
+	even
 	
 ; ---------------------------------------------------------------------------
 
@@ -46012,6 +46266,10 @@ ArtNem_ArmsIntro:
 	
 ArtNem_ArmsIntro2:
 	incbin	"resources/art/art_nem/compressed/Cutscene - Arms (Set 2).nem"
+	even
+
+ArtNem_CreamIntro:
+	incbin	"resources/art/art_nem/compressed/Cutscene - Cream.nem"
 	even
 	
 ArtNem_DragonIntro:
@@ -46303,6 +46561,18 @@ byte_6A144:
 	
 ArtNem_MainMenu:
 	incbin	"resources/art/art_nem/compressed/Main Menu.nem"
+	even
+
+ArtNem_HeroStoryMenu:
+	incbin	"resources/art/art_nem/compressed/Hero Story Menu Labels.nem"
+	even
+
+MapUnc_HeroStoryDark:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Hero Story Menu - Dark.map"
+	even
+
+MapUnc_HeroStoryHero:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Hero Story Menu - Hero.map"
 	even
 	
 MapEni_MainMenu:
