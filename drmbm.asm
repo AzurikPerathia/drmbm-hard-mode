@@ -17546,10 +17546,9 @@ sub_BADA:
 	jsr	(nullsub_3).l
 	bsr.w	sub_BB50
 	jsr	(ActorAnimate).l
-	; The mode-select screen is always driven by controller 1.  The original
-	; title could leave swap_controls pointing at controller 2, making this
-	; menu appear completely frozen after the shortened title sequence.
-	move.w	(p1_ctrl_hold).l,d0
+	; Accept either controller and remember which one is driving the menu.
+	; This also preserves controller 2 ownership when Scenario Mode starts.
+	bsr.w	GetMainMenuCtrlData
 	move.b	d0,d1
 	andi.b	#$F0,d0
 	bne.w	loc_BB62
@@ -21503,6 +21502,30 @@ PrepareMainMenuControls:
 	clr.b	(p2_ctrl_press).l
 	rts
 ; End of function PrepareMainMenuControls
+
+
+; =============== S U B R O U T I N E =====================================
+
+GetMainMenuCtrlData:
+	; Controller 1 wins only when both controllers act on the same frame.
+	move.w	(p1_ctrl_hold).l,d0
+	move.w	(p2_ctrl_hold).l,d1
+	tst.w	d0
+	bne.s	.Player1
+	tst.w	d1
+	beq.s	.Done
+	move.b	#1,(swap_controls).l
+	move.b	#1,(byte_FF196A).l
+	bra.s	.Done
+
+.Player1:
+	clr.b	(swap_controls).l
+	clr.b	(byte_FF196A).l
+
+.Done:
+	or.w	d1,d0
+	rts
+; End of function GetMainMenuCtrlData
 
 
 ; =============== S U B	R O U T	I N E =======================================
