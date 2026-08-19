@@ -1978,7 +1978,7 @@ BC_Sega:
 BC_Title:
 	BVDP	0
 	BNEM	$0000, ArtNem_TitleLogo
-	BNEM	$A000, ArtNem_MainFont
+	BNEM	$9700, ArtNem_NewStoryTitleLogo
 	BFRMEND
 	BRUN	ClearPlaneA
 	BRUN	ClearPlaneB
@@ -1998,6 +1998,10 @@ BC_Title:
 	BFADE	Pal_Black, 2, 0
 	BFADE	Pal_Black, 3, 0
 	BFADEW
+	; Restore the main font after the title has faded out.  During the title,
+	; this VRAM range belongs exclusively to the separate New Story logo.
+	BNEM	$A000, ArtNem_MainFont
+	BFRMEND
 	BRUN	InitPalette_Safe
 	BRUN	InitActors
 	BFRMEND
@@ -21314,9 +21318,15 @@ word_DE32:	dc.w $100
 InitTitle:
 	bsr.w	InitTitleFlags
 	jsr	(ClearScroll).l
-	move.w	#$FF00,(hscroll_buffer).l ; Slide the new full-screen logo in from the left.
 	lea	(ActTitleHandler).l,a1
 	jsr	(FindActorSlot).l
+	bcs.s	.Done
+	lea	(ActTitleRobotnik).l,a1
+	jsr	(FindActorSlot).l
+	bcs.s	.Done
+	move.b	#1,aField26(a1)
+
+.Done:
 	rts
 
 ; ---------------------------------------------------------------------------
@@ -21595,13 +21605,6 @@ ActTitleHandler:
 
 	move.w	#$FFFF,(sound_test_enabled).l
 	bsr.w	CheckIfJapan
-	tst.w	(hscroll_buffer).l
-	beq.s	.CheckInput
-	addi.w	#8,(hscroll_buffer).l
-	bmi.s	.End
-	clr.w	(hscroll_buffer).l
-
-.CheckInput:
 	move.b	(p1_ctrl_press).l,d0
 	or.b	(p2_ctrl_press).l,d0
 	andi.b	#$F0,d0
@@ -21641,8 +21644,38 @@ ActTitleHandler:
 ; ---------------------------------------------------------------------------
 
 .SetupScr:
+	move.w	#2,(word_FF1126).l
+	move.w	#$160,(hscroll_buffer).l
+	move.w	#0,(vscroll_buffer).l
+	bsr.w	sub_E202
+	move.w	#$1E,d0
+	jsr	(ActorBookmark_SetDelay).l
+	jsr	(ActorBookmark).l
+	moveq	#3,d3
+
+.FadeToPal:
+	lea	(Palette_Table).l,a2
+	move.l	d3,d0
+	move.l	d0,d2
+	addi.w	#(Pal_Title1-Palette_Table)>>5,d2
+	lsl.w	#5,d2
+	adda.l	d2,a2
+	moveq	#0,d1
+	jsr	(FadeToPalette).l
+	dbf	d3,.FadeToPal
+	jsr	(ActorBookmark).l
+	jsr	(CheckPaletteFade).l
+	bcc.w	.Delay
+	rts
+; ---------------------------------------------------------------------------
+
+.Delay:
+	move.w	#3,(word_FF1126).l
+	move.w	#$3C,d0
+	jsr	(ActorBookmark_SetDelay).l
+	jsr	(ActorBookmark).l
 	move.w	#$FFFF,(word_FF1126).l
-	bra.w	loc_ECE8
+	jmp	(ActorDeleteSelf).l
 ; End of function ActTitleHandler
 
 
@@ -22811,26 +22844,40 @@ locret_EC0A:
 
 Title_LoadFG:
 	DISABLE_INTS
-	movem.l	d0-d2/d5/d7/a0,-(sp)
-	lea	(MapEni_TitleLogo).l,a0
-	move.w	#$C000,d5
-	move.w	#$1B,d2
+	movem.l	d1-d2/d5/d7/a0,-(sp)
+	lea	(MapUnc_NewStoryTitleLogo).l,a0
+	move.w	#$C710,d5	; x=64, y=56 on the 128-tile-wide title plane.
+	move.w	#$D,d2
 
 .Row:
 	jsr	(SetVRAMWrite).l
-	move.w	#$27,d1
+	move.w	#$17,d1
 
 .Tile:
 	move.w	(a0)+,VDP_DATA
 	dbf	d1,.Tile
-	addi.w	#$100,d5	; Title mode uses a 128-tile-wide plane.
+	addi.w	#$100,d5
 	dbf	d2,.Row
-	movem.l	(sp)+,d0-d2/d5/d7/a0
+	movem.l	(sp)+,d1-d2/d5/d7/a0
 	ENABLE_INTS
 	rts
 ; =============== S U B	R O U T	I N E =======================================
 
 Title_LoadBG:
+	DISABLE_INTS
+	lea	(MapEni_TitleRobotnik).l,a0
+	lea	($E100).l,a1
+	move.w	#$6000,d0
+	move.w	#$27,d1
+	move.w	#$16,d2
+	jsr	(EniDec).l
+	movea.l	#(eni_tilemap_buffer+$728),a1
+	moveq	#5,d0
+
+loc_EC5E:
+	clr.l	(a1)+
+	dbf	d0,loc_EC5E
+	ENABLE_INTS
 	rts
 
 ; =============== S U B	R O U T	I N E =======================================
@@ -46813,12 +46860,17 @@ ArtPuyo_OldGameOver:
 ArtNem_TitleLogo:
 	incbin	"resources/art/art_nem/compressed/Title.nem"
 	even
+
+ArtNem_NewStoryTitleLogo:
+	incbin	"resources/art/art_nem/compressed/Title - New Story Logo.nem"
+	even
+
+MapUnc_NewStoryTitleLogo:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Title - New Story Logo.map"
+	even
 	
 MapEni_TitleLogo:
-	; The full-screen title map is copied directly.  The original one-command
-	; Enigma queue was intended for the much smaller 24x8 logo and corrupts
-	; this 40x28 replacement on hardware.
-	incbin	"resources/mappings/background/map_eni/uncompressed/Title - Logo.map"
+	incbin	"resources/mappings/background/map_eni/compressed/Title - Logo.eni"
 	even
 	
 MapEni_TitleRobotnik:
