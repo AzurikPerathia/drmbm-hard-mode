@@ -2312,6 +2312,11 @@ BC_Level:
 
 BC_DarkStoryComplete:
 	BWRITE	story_route, 0
+	BRUN	DisableSHMode
+	BRUN	ClearScroll
+	BRUN	ClearPlaneA
+	BRUN	ClearPlaneB
+	BFRMEND
 	BJMP	BC_MainMenu
 
 BC_GameOver:
@@ -20524,6 +20529,7 @@ ActOpponentScr_Update:
 	tst.b	(story_route).l
 	beq.s	.StageTilesReady
 	lea	(.CreamStageTextTiles).l,a2
+	move.w	#$84AC,d0	; Native number 1 recoloured yellow.
 
 .StageTilesReady:
 	lea	(eni_tilemap_buffer).l,a1
@@ -20544,32 +20550,29 @@ ActOpponentScr_Update:
 	move.w	d0,(a1)+
 	addi.w	#$A,d0
 	dbf	d1,.DrawStageHdrLine
-	tst.b	(story_route).l
-	beq.s	.QueueStageText
-	lea	(.CreamNameTiles).l,a2
-	moveq	#4,d1
-
-.CopyHeroName:
-	move.w	(a2)+,(a1)+
-	dbf	d1,.CopyHeroName
 
 .QueueStageText:
 	lea	(eni_tilemap_queue).l,a1
 	move.w	#1,(a1)+
-	tst.b	(story_route).l
-	beq.s	.QueueStageOnly
-	move.w	#2,-2(a1)
-
-.QueueStageOnly:
 	move.w	#7,(a1)+
 	move.w	#1,(a1)+
 	move.w	d5,(a1)+
 	tst.b	(story_route).l
 	beq.s	.StageQueueDone
-	move.w	#1,(a1)+
-	move.w	#5,(a1)+
-	move.w	#0,(a1)+
-	move.w	#$CA40,(a1)+
+
+	; Tilemap queue commands all begin at eni_tilemap_buffer.  Writing CREAM
+	; as a second command therefore repeated STAGE over the portrait.  Send
+	; the five name tiles directly to their own plane position instead.
+	DISABLE_INTS
+	move.w	#$CA40,d5
+	jsr	(SetVRAMWrite).l
+	lea	(.CreamNameTiles).l,a2
+	moveq	#4,d1
+
+.WriteCreamName:
+	move.w	(a2)+,VDP_DATA
+	dbf	d1,.WriteCreamName
+	ENABLE_INTS
 
 .StageQueueDone:
 	rts

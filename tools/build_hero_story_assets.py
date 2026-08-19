@@ -120,18 +120,26 @@ def build_shared_palette(images: list[Image.Image]) -> list[tuple[int, int, int]
             colors.append(snapped)
         if len(colors) == 13:
             break
-    # Palette entries 14 and 15 are deliberately unused.  The original game
-    # writes its white-flash effect into entry 14; keeping it out of Cream's
-    # visible art prevents the face/ear texture corruption seen during flashes.
+    # Entry 14 is deliberately unused.  The original game writes its white-
+    # flash effect there; keeping it out of Cream's visible art prevents the
+    # face/ear texture corruption seen during flashes.
     while len(colors) < 13:
         colors.append(colors[-1])
     # Entry 13 is a stable opaque blue for Dark Story's STAGE lettering.
     colors.append((0, 68, 238))
-    colors.extend((BACKGROUND, BACKGROUND))
+    colors.append(BACKGROUND)
+    # Entry 15 is not selected by the portrait remapper and can safely hold
+    # the stable yellow used by Dark Story's stage number.
+    colors.append((255, 238, 0))
     return colors
 
 
-def remap(image: Image.Image, palette: list[tuple[int, int, int]]) -> Image.Image:
+def remap(
+    image: Image.Image,
+    palette: list[tuple[int, int, int]],
+    *,
+    transparent_sprite: bool = False,
+) -> Image.Image:
     rgba = image.convert("RGBA")
     indexed = Image.new("P", image.size)
     flat = [component for color in palette for component in color]
@@ -144,8 +152,12 @@ def remap(image: Image.Image, palette: list[tuple[int, int, int]]) -> Image.Imag
             if alpha < 128:
                 target[x, y] = 0
                 continue
+            # Mega Drive sprites always treat palette entry 0 as transparent.
+            # Plane art may use it as a real background colour, but an opaque
+            # sprite pixel must never be mapped there or it becomes a hole.
+            candidates = range(1, 14) if transparent_sprite else range(14)
             target[x, y] = min(
-                range(14),
+                candidates,
                 key=lambda index: sum(
                     (component - palette[index][channel]) ** 2
                     for channel, component in enumerate((red, green, blue))
@@ -330,8 +342,8 @@ def write_dialogue_assets() -> None:
     generated_open = prepare_dialogue(SOURCE_DIR / "cream-dialogue-open.png")
     opened = replace_tile_regions(closed, generated_open, ((4, 7, 6, 9),))
     palette = build_shared_palette([closed, opened])
-    closed_indexed = remap(closed, palette)
-    open_indexed = remap(opened, palette)
+    closed_indexed = remap(closed, palette, transparent_sprite=True)
+    open_indexed = remap(opened, palette, transparent_sprite=True)
 
     pieces = (
         (0, 0, 4, 4), (4, 0, 4, 4), (8, 0, 2, 4),
@@ -412,24 +424,39 @@ def write_menu_assets() -> None:
 
 
 def write_stage_label_assets() -> None:
-    # Palette entry 0 remains transparent: only the STAGE letters turn blue.
-    stage_top: list[Image.Image] = []
-    stage_bottom: list[Image.Image] = []
-    for char in "STAGE":
-        full = Image.new("P", (8, 16), color=0)
-        glyph = FONT_5X7[char]
-        pixels = full.load()
-        for y, row in enumerate(glyph):
-            for x, bit in enumerate(row):
-                if bit == "1":
-                    pixels[x + 1, y + 4] = 13
-                    if x + 2 < 8 and y + 5 < 16:
-                        pixels[x + 2, y + 5] = 12
-        stage_top.append(full.crop((0, 0, 8, 8)))
-        stage_bottom.append(full.crop((0, 8, 8, 16)))
+    # Reuse the ten exact native STAGE tiles (five columns by two rows) from
+    # the original Hero Story screen.  Keep their transparent mask byte-for-
+    # byte and change only visible nibbles to Cream's reserved blue entry.
+    native_art = (ART_DIR / "Next Opponent.unc").read_bytes()
+    native_stage = native_art[147 * 32 : 157 * 32]
+    if len(native_stage) != 10 * 32:
+        raise RuntimeError("Native STAGE art is incomplete")
+    def recolor(data: bytes, foreground: int) -> bytes:
+        def pixel(value: int) -> int:
+            if value == 0xF:
+                return foreground
+            if value == 1:
+                return 12
+            return 0
+
+        return bytes((pixel(value >> 4) << 4) | pixel(value & 0xF) for value in data)
+
+    stage = recolor(native_stage, 13)
 
     cream = [label_tile(char, background=1, shadow=1, foreground=12) for char in "CREAM"]
-    art = b"".join(image_to_tiles(tile) for tile in stage_top + stage_bottom + cream)
+    number_one = native_art[0x75 * 32 : 0x76 * 32] + native_art[0x7F * 32 : 0x80 * 32]
+    if len(number_one) != 2 * 32:
+        raise RuntimeError("Native stage-number art is incomplete")
+    yellow_one = recolor(number_one, 15)
+    # The stage drawing loop advances ten tile IDs between its two rows.
+    # Keep the native spacing so the upper and lower halves use +$A as usual.
+    art = (
+        stage
+        + b"".join(image_to_tiles(tile) for tile in cream)
+        + yellow_one[:32]
+        + bytes(9 * 32)
+        + yellow_one[32:]
+    )
     (ART_DIR / "Dark Story Stage Labels.unc").write_bytes(art)
 
 
