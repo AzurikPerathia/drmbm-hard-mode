@@ -3141,9 +3141,6 @@ Pal_Cream:
 Pal_CreamIntro:
 	incbin	"resources/palettes/line/new/Cutscene - Cream.pal"
 
-Pal_DarkStoryStageLabels:
-	incbin	"resources/palettes/line/new/Dark Story Stage Labels.pal"
-	
 Pal_ArmsIntro:
 	incbin	"resources/palettes/line/new/Cutscene - Arms.pal"
 	
@@ -15543,6 +15540,9 @@ loc_A9C0:
 	tst.b	(story_route).l
 	beq.s	.StandardMapping
 	move.b	#$41,d1
+	move.l	#CreamIntroAnim,aAnim(a1)
+	clr.w	aAnimTime(a1)
+	clr.b	aFrame(a1)
 
 .StandardMapping:
 	move.b	d1,aMappings(a1)
@@ -20546,9 +20546,6 @@ ActOpponentScr_Update:
 	dbf	d1,.DrawStageHdrLine
 	tst.b	(story_route).l
 	beq.s	.QueueStageText
-	lea	(Pal_DarkStoryStageLabels).l,a2
-	moveq	#2,d0
-	jsr	(LoadPalette).l
 	lea	(.CreamNameTiles).l,a2
 	moveq	#4,d1
 
@@ -20572,7 +20569,7 @@ ActOpponentScr_Update:
 	move.w	#1,(a1)+
 	move.w	#5,(a1)+
 	move.w	#0,(a1)+
-	move.w	#$C8C0,(a1)+
+	move.w	#$CA40,(a1)+
 
 .StageQueueDone:
 	rts
@@ -20591,12 +20588,12 @@ ActOpponentScr_Update:
 	dc.w $849C
 	dc.w 0
 
-.CreamStageTextTiles:	; STAGE on blue, using the dedicated label palette on line 2
-	dc.w $C49D, $C49E, $C49F, $C4A0, $C4A1, 0
-	dc.w $C4A2, $C4A3, $C4A4, $C4A5, $C4A6, 0
+.CreamStageTextTiles:	; Transparent tiles: only the STAGE glyph itself is blue.
+	dc.w $849D, $849E, $849F, $84A0, $84A1, 0
+	dc.w $84A2, $84A3, $84A4, $84A5, $84A6, 0
 
-.CreamNameTiles:	; CREAM on white, using the dedicated label palette on line 2
-	dc.w $C4A7, $C4A8, $C4A9, $C4AA, $C4AB
+.CreamNameTiles:	; CREAM on white, using Cream's already-loaded palette line.
+	dc.w $84A7, $84A8, $84A9, $84AA, $84AB
 ; ---------------------------------------------------------------------------
 
 ActOpponentScr_Done:

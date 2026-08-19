@@ -109,8 +109,8 @@ def build_shared_palette(images: list[Image.Image]) -> list[tuple[int, int, int]
         else:
             sample.paste(image, (cursor, 0))
         cursor += image.width
-    quantized = sample.quantize(colors=13, method=Image.Quantize.MEDIANCUT)
-    raw = quantized.getpalette()[: 13 * 3]
+    quantized = sample.quantize(colors=12, method=Image.Quantize.MEDIANCUT)
+    raw = quantized.getpalette()[: 12 * 3]
 
     colors = [BACKGROUND]
     for offset in range(0, len(raw), 3):
@@ -118,13 +118,15 @@ def build_shared_palette(images: list[Image.Image]) -> list[tuple[int, int, int]
         snapped = tuple(genesis_channel(component) * 255 // 14 for component in color)
         if snapped not in colors:
             colors.append(snapped)
-        if len(colors) == 14:
+        if len(colors) == 13:
             break
     # Palette entries 14 and 15 are deliberately unused.  The original game
     # writes its white-flash effect into entry 14; keeping it out of Cream's
     # visible art prevents the face/ear texture corruption seen during flashes.
-    while len(colors) < 14:
+    while len(colors) < 13:
         colors.append(colors[-1])
+    # Entry 13 is a stable opaque blue for Dark Story's STAGE lettering.
+    colors.append((0, 68, 238))
     colors.extend((BACKGROUND, BACKGROUND))
     return colors
 
@@ -290,7 +292,7 @@ def write_portrait_assets() -> None:
         "Happy": prepare_portrait(SOURCE_DIR / "cream-happy.png", remove_white=True),
         "Upset": prepare_portrait(SOURCE_DIR / "cream-upset.png", remove_white=True),
         "Stress": prepare_portrait(SOURCE_DIR / "cream-stress.png"),
-        "Defeated": prepare_portrait(SOURCE_DIR / "cream-defeated.png"),
+        "Defeated": prepare_portrait(SOURCE_DIR / "cream-defeated-v2.png", remove_white=True),
     }
     images = [
         neutral,
@@ -299,7 +301,7 @@ def write_portrait_assets() -> None:
         replace_tile_regions(neutral, generated["Happy"], ((2, 2, 8, 6),)),
         replace_tile_regions(neutral, generated["Upset"], ((2, 2, 8, 6),)),
         replace_tile_regions(neutral, generated["Stress"], ((2, 2, 8, 6),)),
-        replace_tile_regions(neutral, generated["Defeated"], ((1, 1, 9, 7),)),
+        replace_tile_regions(neutral, generated["Defeated"], ((2, 2, 8, 6),)),
     ]
     palette = build_shared_palette(images)
     indexed = [remap(image, palette) for image in images]
@@ -349,11 +351,12 @@ def write_dialogue_assets() -> None:
 
     def mapping_words(include_mouth: bool) -> list[tuple[int, int, int, int]]:
         words: list[tuple[int, int, int, int]] = []
+        talking_bob = -1 if include_mouth else 0
         for (tile_x, tile_y, width, height), start in zip(pieces, starts):
             size = (((height - 1) << 2) | (width - 1)) << 8
-            words.append((tile_y * 8, size | 2, 0xE400 + start, -40 + tile_x * 8))
+            words.append((tile_y * 8 - 16 + talking_bob, size | 2, 0xE400 + start, 8 + tile_x * 8))
         if include_mouth:
-            words.append((56, 0x502, 0xE400 + mouth_start, -8))
+            words.append((39, 0x502, 0xE400 + mouth_start, 40))
         return words
 
     for suffix, include_mouth in (("Closed", False), ("Open", True)):
@@ -409,30 +412,23 @@ def write_menu_assets() -> None:
 
 
 def write_stage_label_assets() -> None:
-    # A dedicated palette keeps these colours stable while opponent portraits
-    # cycle the other palette lines on the Next Opponent screen.
-    label_palette = [
-        (0, 0, 0), (238, 238, 238), (0, 0, 68), (68, 136, 238), (238, 204, 0)
-    ] + [(0, 0, 0)] * 11
-    write_palette(label_palette, "Dark Story Stage Labels.pal")
-
-    # STAGE keeps the original two-tile height and gains a solid blue box.
+    # Palette entry 0 remains transparent: only the STAGE letters turn blue.
     stage_top: list[Image.Image] = []
     stage_bottom: list[Image.Image] = []
     for char in "STAGE":
-        full = Image.new("P", (8, 16), color=3)
+        full = Image.new("P", (8, 16), color=0)
         glyph = FONT_5X7[char]
         pixels = full.load()
         for y, row in enumerate(glyph):
             for x, bit in enumerate(row):
                 if bit == "1":
-                    pixels[x + 1, y + 4] = 4
+                    pixels[x + 1, y + 4] = 13
                     if x + 2 < 8 and y + 5 < 16:
-                        pixels[x + 2, y + 5] = 2
+                        pixels[x + 2, y + 5] = 12
         stage_top.append(full.crop((0, 0, 8, 8)))
         stage_bottom.append(full.crop((0, 8, 8, 16)))
 
-    cream = [label_tile(char, background=1, shadow=1, foreground=2) for char in "CREAM"]
+    cream = [label_tile(char, background=1, shadow=1, foreground=12) for char in "CREAM"]
     art = b"".join(image_to_tiles(tile) for tile in stage_top + stage_bottom + cream)
     (ART_DIR / "Dark Story Stage Labels.unc").write_bytes(art)
 
