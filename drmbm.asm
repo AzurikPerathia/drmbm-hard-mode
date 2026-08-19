@@ -20528,6 +20528,18 @@ ActOpponentScr_Update:
 .StartFlash:
 	move.b	#SFX_GARBAGE_1,d0
 	jsr	(PlaySound_ChkPCM).l
+	tst.b	(story_route).l
+	beq.s	.CreamNameSpawned
+	lea	(ActCreamStageName).l,a1
+	jsr	(FindActorSlot).l
+	bcs.s	.CreamNameSpawned
+	move.b	#$42,aMappings(a1)
+	clr.b	aFrame(a1)
+	move.b	#$80,aDrawFlags(a1)
+	move.w	#$120,aX(a1)	; Screen centre (160 + sprite bias 128).
+	move.w	#$110,aY(a1)	; Directly below the portrait frame.
+
+.CreamNameSpawned:
 	move.w	#$C73E,d5
 	clr.l	d2
 	clr.w	d0
@@ -20572,27 +20584,6 @@ ActOpponentScr_Update:
 	move.w	#7,(a1)+
 	move.w	#1,(a1)+
 	move.w	d5,(a1)+
-	tst.b	(story_route).l
-	beq.s	.StageQueueDone
-
-	; Tilemap queue commands all begin at eni_tilemap_buffer.  Send the two-row
-	; CREAM label directly below the portrait, centred on the same axis as the
-	; STAGE 1 header above it.
-	DISABLE_INTS
-	lea	(.CreamNameTiles).l,a2
-	move.w	#$C140,d5
-	moveq	#1,d2
-
-.WriteCreamNameRow:
-	jsr	(SetVRAMWrite).l
-	moveq	#4,d1
-
-.WriteCreamName:
-	move.w	(a2)+,VDP_DATA
-	dbf	d1,.WriteCreamName
-	addi.w	#$80,d5
-	dbf	d2,.WriteCreamNameRow
-	ENABLE_INTS
 
 .StageQueueDone:
 	rts
@@ -20615,9 +20606,10 @@ ActOpponentScr_Update:
 	dc.w $849D, $849E, $849F, $84A0, $84A1, 0
 	dc.w $84A2, $84A3, $84A4, $84A5, $84A6, 0
 
-.CreamNameTiles:	; Native-style CREAM, centred below the portrait.
-	dc.w $84A7, $84A8, $84A9, $84AA, $84AB
-	dc.w $84AC, $84AD, $84AE, $84AF, $84B0
+; ---------------------------------------------------------------------------
+
+ActCreamStageName:
+	rts
 ; ---------------------------------------------------------------------------
 
 ActOpponentScr_Done:
@@ -33752,6 +33744,7 @@ SpriteMappings:
 	dc.l off_17748
 	dc.l off_19610
 	dc.l Sprite_Cutscene_Cream
+	dc.l Sprite_Opponent_Cream_Name
 	
 ; --------------------------------------------------------------
 
@@ -33762,6 +33755,23 @@ Sprite_Cutscene_Cream_Closed:
 	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Closed).map"
 Sprite_Cutscene_Cream_Open:
 	incbin	"resources/mappings/background/map_eni/uncompressed/Cutscene - Cream (Open).map"
+
+; --------------------------------------------------------------
+
+Sprite_Opponent_Cream_Name:
+	dc.l .Frame
+.Frame:
+	dc.w 10
+	spritePiece -20, 0, 1, 1, $4A7, 0, 0, 0, 1, 2
+	spritePiece -12, 0, 1, 1, $4A8, 0, 0, 0, 1, 2
+	spritePiece  -4, 0, 1, 1, $4A9, 0, 0, 0, 1, 2
+	spritePiece   4, 0, 1, 1, $4AA, 0, 0, 0, 1, 2
+	spritePiece  12, 0, 1, 1, $4AB, 0, 0, 0, 1, 2
+	spritePiece -20, 8, 1, 1, $4AC, 0, 0, 0, 1, 2
+	spritePiece -12, 8, 1, 1, $4AD, 0, 0, 0, 1, 2
+	spritePiece  -4, 8, 1, 1, $4AE, 0, 0, 0, 1, 2
+	spritePiece   4, 8, 1, 1, $4AF, 0, 0, 0, 1, 2
+	spritePiece  12, 8, 1, 1, $4B0, 0, 0, 0, 1, 2
 
 ; --------------------------------------------------------------
 	
@@ -45291,6 +45301,16 @@ SpawnGarbageGlow:
 
 .GetVoice:
 	lea	(ComboVoices).l,a1
+	tst.b	(level_mode).l
+	bne.s	.CheckHardModeVoice
+	; Story voices follow the selected side: Dark Story controls the villains
+	; (Yeehaw), while Hero Story controls the heroes (Youpii).
+	tst.b	(story_route).l
+	beq.s	.GetPlayerVoice
+	lea	(HardModeComboVoices).l,a1
+	bra.s	.GetPlayerVoice
+
+.CheckHardModeVoice:
 	tst.b	(hard_mode).l
 	beq.s	.GetPlayerVoice
 	lea	(HardModeComboVoices).l,a1
