@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Convert the custom title logo to the game's native Mega Drive assets."""
+"""Convert the custom logo into a full-screen, four-palette Mega Drive title."""
 
 from pathlib import Path
+import colorsys
 import struct
 
 from PIL import Image, ImageEnhance, ImageFilter
@@ -11,17 +12,22 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "resources/source/title/Mean Bean Machine - New Story.png"
 ART = ROOT / "resources/art/art_nem/uncompressed/Title.unc"
 MAP = ROOT / "resources/mappings/background/map_eni/uncompressed/Title - Logo.map"
-PALETTE = ROOT / "resources/palettes/line/new/Title - Colors 1.pal"
 PREVIEW = ROOT / "resources/source/title/Mean Bean Machine - New Story - Mega Drive preview.png"
+PALETTES = [
+    ROOT / "resources/palettes/line/new/Title - Colors 1.pal",
+    ROOT / "resources/palettes/line/new/Title - Colors 2.pal",
+    ROOT / "resources/palettes/line/new/Title - Colors 3.pal",
+    ROOT / "resources/palettes/line/new/Title - Colors 4 (Show Robotnik Face).pal",
+]
 
-WIDTH = 192
-HEIGHT = 64
-ORIGINAL_ART_SIZE = 38656  # 1208 tiles; everything after tile 147 is preserved.
-FIRST_EXTRA_TILE = 1208
+WIDTH = 320
+HEIGHT = 224
+MAX_LOGO_WIDTH = 304
+MAX_LOGO_HEIGHT = 190
 FONT_TILE = 1280
 
 
-def md_channel(value: int) -> int:
+def md_channel(value):
     return max(0, min(7, round(value / 33))) * 33
 
 
@@ -35,101 +41,173 @@ def colour_distance(a, b):
     return 2 * dr * dr + 4 * dg * dg + db * db
 
 
-def build_palette(image):
-    opaque = [p[:3] for p in image.getdata() if p[3] >= 96 and max(p[:3]) >= 18]
-    sample = Image.new("RGB", (len(opaque), 1))
-    sample.putdata(opaque)
-    reduced = sample.quantize(colors=14, method=Image.Quantize.MEDIANCUT)
-    raw = reduced.getpalette()[: 14 * 3]
-    colours = [(raw[i], raw[i + 1], raw[i + 2]) for i in range(0, len(raw), 3)]
-    colours = [(md_channel(r), md_channel(g), md_channel(b)) for r, g, b in colours]
+def prepare_canvas():
+    source = Image.open(SOURCE).convert("RGBA")
+    bbox = source.getchannel("A").getbbox()
+    if bbox:
+        source = source.crop(bbox)
+    scale = min(MAX_LOGO_WIDTH / source.width, MAX_LOGO_HEIGHT / source.height)
+    size = (round(source.width * scale), round(source.height * scale))
+    source = source.resize(size, Image.Resampling.LANCZOS)
+    source = ImageEnhance.Contrast(source).enhance(1.10)
+    source = ImageEnhance.Color(source).enhance(1.12)
+    source = source.filter(ImageFilter.UnsharpMask(radius=0.65, percent=125, threshold=2))
+    canvas = Image.new("RGBA", (WIDTH, HEIGHT))
+    canvas.alpha_composite(source, ((WIDTH - size[0]) // 2, (HEIGHT - size[1]) // 2))
+    return canvas
 
-    result = [(0, 0, 0), (0, 0, 0)]
+
+def split_tiles(image):
+    tiles = []
+    data = list(image.getdata())
+    for tile_y in range(HEIGHT // 8):
+        for tile_x in range(WIDTH // 8):
+            pixels = []
+            for y in range(8):
+                offset = (tile_y * 8 + y) * WIDTH + tile_x * 8
+                pixels.extend(data[offset:offset + 8])
+            tiles.append(pixels)
+    return tiles
+
+
+def tile_signature(tile):
+    bins = [0.0] * 7  # red, yellow, green, cyan, blue, purple, neutral
+    opaque = 0
+    brightness = 0.0
+    for r, g, b, a in tile:
+        if a < 64:
+            continue
+        opaque += 1
+        brightness += (r + g + b) / 765
+        h, s, _ = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+        if s < 0.18:
+            bins[6] += 1
+        else:
+            bins[min(5, int((h * 6 + 0.5) % 6))] += 1
+    if not opaque:
+        return (0.0,) * 9
+    return tuple(v / opaque for v in bins) + (opaque / 64, brightness / opaque)
+
+
+def sq_distance(a, b):
+    return sum((x - y) ** 2 for x, y in zip(a, b))
+
+
+def initial_groups(tiles):
+    features = [tile_signature(tile) for tile in tiles]
+    nonblank = [i for i, f in enumerate(features) if f[7] > 0]
+    seeds = [nonblank[0]]
+    while len(seeds) < 4:
+        seeds.append(max(nonblank, key=lambda i: min(sq_distance(features[i], features[s]) for s in seeds)))
+    centres = [features[i] for i in seeds]
+    groups = [0] * len(tiles)
+    for _ in range(12):
+        groups = [min(range(4), key=lambda g: sq_distance(f, centres[g])) for f in features]
+        for g in range(4):
+            members = [features[i] for i in nonblank if groups[i] == g]
+            if members:
+                centres[g] = tuple(sum(v) / len(members) for v in zip(*members))
+    return groups
+
+
+def quantize_group(tiles, groups, group):
+    pixels = [p[:3] for i, tile in enumerate(tiles) if groups[i] == group for p in tile if p[3] >= 64]
+    if not pixels:
+        return [(0, 0, 0)] * 16
+    sample = Image.new("RGB", (len(pixels), 1))
+    sample.putdata(pixels)
+    reduced = sample.quantize(colors=15, method=Image.Quantize.MEDIANCUT)
+    raw = reduced.getpalette()[:45]
+    colours = [(md_channel(raw[i]), md_channel(raw[i + 1]), md_channel(raw[i + 2])) for i in range(0, len(raw), 3)]
+    result = [(0, 0, 0)]
     for colour in colours:
-        if colour not in result:
+        if colour not in result[1:]:
             result.append(colour)
     while len(result) < 16:
         result.append(result[-1])
     return result[:16]
 
 
-def prepare_image():
-    source = Image.open(SOURCE).convert("RGBA")
-    bbox = source.getchannel("A").getbbox()
-    if bbox:
-        source = source.crop(bbox)
-    source = source.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
-    source = ImageEnhance.Contrast(source).enhance(1.12)
-    source = ImageEnhance.Color(source).enhance(1.15)
-    return source.filter(ImageFilter.UnsharpMask(radius=0.7, percent=135, threshold=2))
+def reconstruction_error(tile, palette):
+    error = 0
+    for r, g, b, a in tile:
+        if a >= 64:
+            error += min(colour_distance((r, g, b), colour) for colour in palette[1:])
+    return error
 
 
-def index_image(image, palette):
-    indexed = []
-    for r, g, b, a in image.getdata():
-        if a < 72:
-            indexed.append(0)
-            continue
-        best = min(range(1, 16), key=lambda i: colour_distance((r, g, b), palette[i]))
-        indexed.append(best)
-    return indexed
+def optimise_palettes(tiles):
+    groups = initial_groups(tiles)
+    palettes = None
+    for _ in range(8):
+        palettes = [quantize_group(tiles, groups, g) for g in range(4)]
+        new_groups = []
+        for tile in tiles:
+            if not any(p[3] >= 64 for p in tile):
+                new_groups.append(0)
+            else:
+                new_groups.append(min(range(4), key=lambda g: reconstruction_error(tile, palettes[g])))
+        if new_groups == groups:
+            break
+        groups = new_groups
+    return groups, palettes
 
 
-def encode_tile(indices):
-    data = bytearray()
+def encode_tile(tile, palette):
+    indices = []
+    reconstructed = []
+    for r, g, b, a in tile:
+        if a < 64:
+            index = 0
+        else:
+            index = min(range(1, 16), key=lambda i: colour_distance((r, g, b), palette[i]))
+        indices.append(index)
+        reconstructed.append(palette[index] + ((0 if index == 0 else 255),))
+    encoded = bytearray()
     for row in range(8):
         start = row * 8
         for col in range(0, 8, 2):
-            data.append((indices[start + col] << 4) | indices[start + col + 1])
-    return bytes(data)
+            encoded.append((indices[start + col] << 4) | indices[start + col + 1])
+    return bytes(encoded), reconstructed
 
 
 def build_assets():
-    image = prepare_image()
-    palette = build_palette(image)
-    pixels = index_image(image, palette)
-
-    tiles = []
-    for tile_y in range(HEIGHT // 8):
-        for tile_x in range(WIDTH // 8):
-            values = []
-            for y in range(8):
-                offset = (tile_y * 8 + y) * WIDTH + tile_x * 8
-                values.extend(pixels[offset:offset + 8])
-            tiles.append(encode_tile(values))
+    canvas = prepare_canvas()
+    tiles = split_tiles(canvas)
+    groups, palettes = optimise_palettes(tiles)
 
     blank = bytes(32)
     tile_ids = {blank: 0}
-    unique_tiles = []
-    map_ids = []
-    for tile in tiles:
-        if tile not in tile_ids:
-            ordinal = len(unique_tiles)
-            tile_id = ordinal + 1 if ordinal < 147 else FIRST_EXTRA_TILE + ordinal - 147
-            if tile_id >= FONT_TILE:
-                raise RuntimeError("The converted logo exceeds the free title-screen VRAM.")
-            tile_ids[tile] = tile_id
-            unique_tiles.append(tile)
-        map_ids.append(tile_ids[tile])
+    art_tiles = [blank]
+    map_words = []
+    preview_tiles = []
+    for tile, group in zip(tiles, groups):
+        encoded, reconstructed = encode_tile(tile, palettes[group])
+        if encoded not in tile_ids:
+            tile_ids[encoded] = len(art_tiles)
+            art_tiles.append(encoded)
+        map_words.append(tile_ids[encoded] | (group << 13))
+        preview_tiles.append(reconstructed)
 
-    art = bytearray(ART.read_bytes()[:ORIGINAL_ART_SIZE])
-    if len(art) != ORIGINAL_ART_SIZE:
-        raise RuntimeError("Unexpected original Title.unc size")
-    for ordinal, tile in enumerate(unique_tiles):
-        tile_id = ordinal + 1 if ordinal < 147 else FIRST_EXTRA_TILE + ordinal - 147
-        needed = (tile_id + 1) * 32
-        if len(art) < needed:
-            art.extend(bytes(needed - len(art)))
-        art[tile_id * 32:(tile_id + 1) * 32] = tile
-    ART.write_bytes(art)
+    if len(art_tiles) >= FONT_TILE:
+        raise RuntimeError(f"Title uses {len(art_tiles)} tiles; maximum is {FONT_TILE - 1}")
 
-    MAP.write_bytes(b"".join(struct.pack(">H", tile_id) for tile_id in map_ids))
-    PALETTE.write_bytes(b"".join(struct.pack(">H", md_word(c)) for c in palette))
+    ART.write_bytes(b"".join(art_tiles))
+    MAP.write_bytes(b"".join(struct.pack(">H", word) for word in map_words))
+    for path, palette in zip(PALETTES, palettes):
+        path.write_bytes(b"".join(struct.pack(">H", md_word(c)) for c in palette))
 
     preview = Image.new("RGBA", (WIDTH, HEIGHT))
-    preview.putdata([palette[i] + ((0 if i == 0 else 255),) for i in pixels])
-    preview.resize((WIDTH * 4, HEIGHT * 4), Image.Resampling.NEAREST).save(PREVIEW)
-    print(f"Title logo: {len(unique_tiles)} unique tiles, {len(art) // 32} total art tiles")
+    output = [(0, 0, 0, 0)] * (WIDTH * HEIGHT)
+    for i, tile in enumerate(preview_tiles):
+        tile_x = (i % (WIDTH // 8)) * 8
+        tile_y = (i // (WIDTH // 8)) * 8
+        for y in range(8):
+            for x in range(8):
+                output[(tile_y + y) * WIDTH + tile_x + x] = tile[y * 8 + x]
+    preview.putdata(output)
+    preview.resize((WIDTH * 3, HEIGHT * 3), Image.Resampling.NEAREST).save(PREVIEW)
+    print(f"Full title: {len(art_tiles)} unique tiles, four palettes, native {WIDTH}x{HEIGHT}")
 
 
 if __name__ == "__main__":

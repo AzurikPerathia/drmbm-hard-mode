@@ -21314,48 +21314,9 @@ word_DE32:	dc.w $100
 InitTitle:
 	bsr.w	InitTitleFlags
 	jsr	(ClearScroll).l
+	move.w	#$FF00,(hscroll_buffer).l ; Slide the new full-screen logo in from the left.
 	lea	(ActTitleHandler).l,a1
 	jsr	(FindActorSlot).l
-	bcs.w	loc_DECC
-	lea	(ActTitleRobotnik).l,a1
-	jsr	(FindActorSlot).l
-	bcs.w	loc_DECC
-	move.b	#1,aField26(a1)
-	movea.l	a1,a2
-	lea	(ActTitleMachineText).l,a1
-	jsr	(FindActorSlot).l
-	bcs.w	loc_DECC
-	move.l	a2,aField2E(a1)
-	move.b	#$24,aMappings(a1)
-	move.b	#$39,aFrame(a1)
-	move.w	#0,aX(a1)
-	move.w	#$CF,aY(a1)
-	movea.w	a1,a3
-	lea	(TitleAnimPieces).l,a2
-	move.w	#9,d0
-
-loc_DEA6:
-	movea.l	(a2)+,a1
-	jsr	(FindActorSlot).l
-	bcs.w	loc_DECC
-	move.l	a3,aField2E(a1)
-	move.l	(a2)+,aAnim(a1)
-	move.b	#$24,aMappings(a1)
-	move.w	(a2)+,aX(a1)
-	move.w	(a2)+,aY(a1)
-	dbf	d0,loc_DEA6
-
-loc_DECC:
-	lea	(ActTitleRobotnikText).l,a1
-	jsr	(FindActorSlot).l
-	bcs.w	locret_DEFA
-	move.b	#$24,aMappings(a1)
-	move.b	#$49,aFrame(a1)
-	move.w	#$98,aX(a1)
-	move.w	#$90,aY(a1)
-	move.b	#$80,aDrawFlags(a1)
-
-locret_DEFA:
 	rts
 
 ; ---------------------------------------------------------------------------
@@ -21634,6 +21595,13 @@ ActTitleHandler:
 
 	move.w	#$FFFF,(sound_test_enabled).l
 	bsr.w	CheckIfJapan
+	tst.w	(hscroll_buffer).l
+	beq.s	.CheckInput
+	addi.w	#8,(hscroll_buffer).l
+	bmi.s	.End
+	clr.w	(hscroll_buffer).l
+
+.CheckInput:
 	move.b	(p1_ctrl_press).l,d0
 	or.b	(p2_ctrl_press).l,d0
 	andi.b	#$F0,d0
@@ -21673,38 +21641,8 @@ ActTitleHandler:
 ; ---------------------------------------------------------------------------
 
 .SetupScr:
-	move.w	#2,(word_FF1126).l
-	move.w	#$160,(hscroll_buffer).l
-	move.w	#0,(vscroll_buffer).l
-	bsr.w	sub_E202
-	move.w	#$1E,d0
-	jsr	(ActorBookmark_SetDelay).l
-	jsr	(ActorBookmark).l
-	moveq	#3,d3
-
-.FadeToPal:
-	lea	(Palette_Table).l,a2
-	move.l	d3,d0
-	move.l	d0,d2
-	addi.w	#(Pal_Title1-Palette_Table)>>5,d2
-	lsl.w	#5,d2
-	adda.l	d2,a2
-	moveq	#0,d1
-	jsr	(FadeToPalette).l
-	dbf	d3,.FadeToPal
-	jsr	(ActorBookmark).l
-	jsr	(CheckPaletteFade).l
-	bcc.w	.Delay
-	rts
-; ---------------------------------------------------------------------------
-
-.Delay:
-	move.w	#3,(word_FF1126).l
-	move.w	#$3C,d0
-	jsr	(ActorBookmark_SetDelay).l
-	jsr	(ActorBookmark).l
 	move.w	#$FFFF,(word_FF1126).l
-	jmp	(ActorDeleteSelf).l
+	bra.w	loc_ECE8
 ; End of function ActTitleHandler
 
 
@@ -22874,30 +22812,16 @@ locret_EC0A:
 Title_LoadFG:
 	DISABLE_INTS
 	lea	(MapEni_TitleLogo).l,a0
-	lea	($CDB0).l,a1
+	lea	($C000).l,a1
 	move.w	#0,d0
-	move.w	#$17,d1
-	move.w	#7,d2
+	move.w	#$27,d1
+	move.w	#$1B,d2
 	jsr	(EniDec).l
 	ENABLE_INTS
 	rts
 ; =============== S U B	R O U T	I N E =======================================
 
 Title_LoadBG:
-	DISABLE_INTS
-	lea	(MapEni_TitleRobotnik).l,a0
-	lea	($E100).l,a1
-	move.w	#$6000,d0
-	move.w	#$27,d1
-	move.w	#$16,d2
-	jsr	(EniDec).l
-	movea.l	#(eni_tilemap_buffer+$728),a1
-	moveq	#5,d0
-
-loc_EC5E:
-	clr.l	(a1)+
-	dbf	d0,loc_EC5E
-	ENABLE_INTS
 	rts
 
 ; =============== S U B	R O U T	I N E =======================================
