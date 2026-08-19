@@ -22811,12 +22811,21 @@ locret_EC0A:
 
 Title_LoadFG:
 	DISABLE_INTS
+	movem.l	d0-d2/d5/d7/a0,-(sp)
 	lea	(MapEni_TitleLogo).l,a0
-	lea	($C000).l,a1
-	move.w	#0,d0
-	move.w	#$27,d1
+	move.w	#$C000,d5
 	move.w	#$1B,d2
-	jsr	(EniDec).l
+
+.Row:
+	jsr	(SetVRAMWrite).l
+	move.w	#$27,d1
+
+.Tile:
+	move.w	(a0)+,VDP_DATA
+	dbf	d1,.Tile
+	addi.w	#$100,d5	; Title mode uses a 128-tile-wide plane.
+	dbf	d2,.Row
+	movem.l	(sp)+,d0-d2/d5/d7/a0
 	ENABLE_INTS
 	rts
 ; =============== S U B	R O U T	I N E =======================================
@@ -46806,7 +46815,10 @@ ArtNem_TitleLogo:
 	even
 	
 MapEni_TitleLogo:
-	incbin	"resources/mappings/background/map_eni/compressed/Title - Logo.eni"
+	; The full-screen title map is copied directly.  The original one-command
+	; Enigma queue was intended for the much smaller 24x8 logo and corrupts
+	; this 40x28 replacement on hardware.
+	incbin	"resources/mappings/background/map_eni/uncompressed/Title - Logo.map"
 	even
 	
 MapEni_TitleRobotnik:
