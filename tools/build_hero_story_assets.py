@@ -367,14 +367,16 @@ def write_dialogue_assets() -> None:
     def mapping_words(include_mouth: bool) -> list[tuple[int, int, int, int]]:
         words: list[tuple[int, int, int, int]] = []
         talking_bob = -1 if include_mouth else 0
+        # Earlier Mega Drive sprites win when pieces overlap.  Put the mouth
+        # overlay first so the closed face piece cannot hide the open mouth.
+        if include_mouth:
+            words.append((31, 0x502, 0xE400 + mouth_start, 40))
         for (tile_x, tile_y, width, height), start in zip(pieces, starts):
             # Mapping size stores width in bits 3-2 and height in bits 1-0.
             # Swapping these made every 2x4 edge piece render as 4x2, reading
             # unrelated tiles and producing the horizontal cut-out bands.
             size = (((width - 1) << 2) | (height - 1)) << 8
             words.append((tile_y * 8 - 24 + talking_bob, size | 2, 0xE400 + start, 8 + tile_x * 8))
-        if include_mouth:
-            words.append((31, 0x502, 0xE400 + mouth_start, 40))
         return words
 
     for suffix, include_mouth in (("Closed", False), ("Open", True)):
@@ -509,7 +511,7 @@ def write_stage_label_assets() -> None:
     cream = [big_label_glyph(char) for char in "CREAM"]
     cream_top = b"".join(image_to_tiles(glyph.crop((0, 0, 8, 8))) for glyph in cream)
     cream_bottom = b"".join(image_to_tiles(glyph.crop((0, 8, 8, 16))) for glyph in cream)
-    number_one = native_art[0x75 * 32 : 0x76 * 32] + native_art[0x7F * 32 : 0x80 * 32]
+    number_one = native_art[0x76 * 32 : 0x77 * 32] + native_art[0x80 * 32 : 0x81 * 32]
     if len(number_one) != 2 * 32:
         raise RuntimeError("Native stage-number art is incomplete")
     yellow_one = recolor(number_one, 15)

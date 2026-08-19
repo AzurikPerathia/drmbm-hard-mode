@@ -15788,7 +15788,7 @@ CreamIntroAnimations:
 	dc.l CreamIntroAnim
 	dc.l CreamIntroAnim
 CreamIntroAnim:
-	dc.b 6, 0, 5, 1, $FF, 0
+	dc.b 4, 0, 4, 1, $FF, 0
 	dc.l CreamIntroAnim
 	
 off_AC48:	
@@ -20565,7 +20565,7 @@ ActOpponentScr_Update:
 	; STAGE 1 header above it.
 	DISABLE_INTS
 	lea	(.CreamNameTiles).l,a2
-	move.w	#$CDC0,d5
+	move.w	#$C100,d5
 	moveq	#1,d2
 
 .WriteCreamNameRow:
