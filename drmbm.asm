@@ -20529,7 +20529,7 @@ ActOpponentScr_Update:
 	tst.b	(story_route).l
 	beq.s	.StageTilesReady
 	lea	(.CreamStageTextTiles).l,a2
-	move.w	#$84AC,d0	; Native number 1 recoloured yellow.
+	move.w	#$84B1,d0	; Native number 1 recoloured yellow.
 
 .StageTilesReady:
 	lea	(eni_tilemap_buffer).l,a1
@@ -20560,18 +20560,23 @@ ActOpponentScr_Update:
 	tst.b	(story_route).l
 	beq.s	.StageQueueDone
 
-	; Tilemap queue commands all begin at eni_tilemap_buffer.  Writing CREAM
-	; as a second command therefore repeated STAGE over the portrait.  Send
-	; the five name tiles directly to their own plane position instead.
+	; Tilemap queue commands all begin at eni_tilemap_buffer.  Send the two-row
+	; CREAM label directly below the portrait, centred on the same axis as the
+	; STAGE 1 header above it.
 	DISABLE_INTS
-	move.w	#$CA40,d5
-	jsr	(SetVRAMWrite).l
 	lea	(.CreamNameTiles).l,a2
+	move.w	#$CDC0,d5
+	moveq	#1,d2
+
+.WriteCreamNameRow:
+	jsr	(SetVRAMWrite).l
 	moveq	#4,d1
 
 .WriteCreamName:
 	move.w	(a2)+,VDP_DATA
 	dbf	d1,.WriteCreamName
+	addi.w	#$80,d5
+	dbf	d2,.WriteCreamNameRow
 	ENABLE_INTS
 
 .StageQueueDone:
@@ -20595,8 +20600,9 @@ ActOpponentScr_Update:
 	dc.w $849D, $849E, $849F, $84A0, $84A1, 0
 	dc.w $84A2, $84A3, $84A4, $84A5, $84A6, 0
 
-.CreamNameTiles:	; CREAM on white, using Cream's already-loaded palette line.
+.CreamNameTiles:	; Native-style CREAM, centred below the portrait.
 	dc.w $84A7, $84A8, $84A9, $84AA, $84AB
+	dc.w $84AC, $84AD, $84AE, $84AF, $84B0
 ; ---------------------------------------------------------------------------
 
 ActOpponentScr_Done:

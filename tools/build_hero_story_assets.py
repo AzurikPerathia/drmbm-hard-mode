@@ -98,7 +98,9 @@ def genesis_channel(value: int) -> int:
     return max(0, min(14, round(value / 255 * 7) * 2))
 
 
-def build_shared_palette(images: list[Image.Image]) -> list[tuple[int, int, int]]:
+def build_shared_palette(
+    images: list[Image.Image], *, stage_number_yellow: bool = False
+) -> list[tuple[int, int, int]]:
     width = sum(image.width for image in images)
     height = max(image.height for image in images)
     sample = Image.new("RGB", (width, height), BACKGROUND)
@@ -128,9 +130,10 @@ def build_shared_palette(images: list[Image.Image]) -> list[tuple[int, int, int]
     # Entry 13 is a stable opaque blue for Dark Story's STAGE lettering.
     colors.append((0, 68, 238))
     colors.append(BACKGROUND)
-    # Entry 15 is not selected by the portrait remapper and can safely hold
-    # the stable yellow used by Dark Story's stage number.
-    colors.append((255, 238, 0))
+    # Entry 15 is not selected by either Cream remapper.  Only the opponent
+    # portrait palette needs it yellow; the cutscene keeps the original dark
+    # blue here because the dialogue box uses this entry for its lettering.
+    colors.append((255, 238, 0) if stage_number_yellow else BACKGROUND)
     return colors
 
 
@@ -315,7 +318,7 @@ def write_portrait_assets() -> None:
         replace_tile_regions(neutral, generated["Stress"], ((2, 2, 8, 6),)),
         replace_tile_regions(neutral, generated["Defeated"], ((2, 2, 8, 6),)),
     ]
-    palette = build_shared_palette(images)
+    palette = build_shared_palette(images, stage_number_yellow=True)
     indexed = [remap(image, palette) for image in images]
 
     art, maps = build_tile_pool(indexed)
@@ -365,10 +368,13 @@ def write_dialogue_assets() -> None:
         words: list[tuple[int, int, int, int]] = []
         talking_bob = -1 if include_mouth else 0
         for (tile_x, tile_y, width, height), start in zip(pieces, starts):
-            size = (((height - 1) << 2) | (width - 1)) << 8
-            words.append((tile_y * 8 - 16 + talking_bob, size | 2, 0xE400 + start, 8 + tile_x * 8))
+            # Mapping size stores width in bits 3-2 and height in bits 1-0.
+            # Swapping these made every 2x4 edge piece render as 4x2, reading
+            # unrelated tiles and producing the horizontal cut-out bands.
+            size = (((width - 1) << 2) | (height - 1)) << 8
+            words.append((tile_y * 8 - 24 + talking_bob, size | 2, 0xE400 + start, 8 + tile_x * 8))
         if include_mouth:
-            words.append((39, 0x502, 0xE400 + mouth_start, 40))
+            words.append((31, 0x502, 0xE400 + mouth_start, 40))
         return words
 
     for suffix, include_mouth in (("Closed", False), ("Open", True)):
@@ -443,7 +449,66 @@ def write_stage_label_assets() -> None:
 
     stage = recolor(native_stage, 13)
 
-    cream = [label_tile(char, background=1, shadow=1, foreground=12) for char in "CREAM"]
+    native_rows: dict[str, tuple[str, ...]] = {}
+    for char_index, char in enumerate("STAGE"):
+        rows: list[str] = []
+        for y in range(16):
+            tile_index = (y // 8) * 5 + char_index
+            tile = native_stage[tile_index * 32 : (tile_index + 1) * 32]
+            nibbles = [nibble for value in tile for nibble in (value >> 4, value & 0xF)]
+            row = nibbles[(y % 8) * 8 : (y % 8 + 1) * 8]
+            rows.append("".join("#" if pixel == 0xF else "." for pixel in row))
+        native_rows[char] = tuple(rows)
+
+    # C, R and M are drawn with the same three-pixel strokes, rounded caps
+    # and one-pixel lower-left shadow as the game's native STAGE lettering.
+    big_font = {
+        "C": (
+            "...###..", "..#####.", ".#######", ".###.###",
+            ".###.###", ".###....", ".###....", ".###....",
+            ".###....", ".###....", ".###....", ".###.###",
+            ".#######", "..#####.", "...###..", "........",
+        ),
+        "R": (
+            "..#####.", ".#######", ".#######", ".###.###",
+            ".###.###", ".###.###", ".#######", ".######.",
+            ".#####..", ".###.###", ".###.###", ".###.###",
+            ".###.###", ".###.###", ".###.###", "........",
+        ),
+        "M": (
+            ".###.###", ".#######", ".#######", ".#######",
+            ".#######", ".###.###", ".###.###", ".###.###",
+            ".###.###", ".###.###", ".###.###", ".###.###",
+            ".###.###", ".###.###", ".###.###", "........",
+        ),
+        "A": native_rows["A"],
+        "E": native_rows["E"],
+    }
+
+    def big_label_glyph(char: str) -> Image.Image:
+        image = Image.new("P", (8, 16), color=0)
+        foreground = {
+            (x, y)
+            for y, row in enumerate(big_font[char])
+            for x, pixel in enumerate(row)
+            if pixel == "#"
+        }
+        shadow = set()
+        for x, y in foreground:
+            for dx, dy in ((-1, 0), (0, 1), (-1, 1)):
+                point = (x + dx, y + dy)
+                if 0 <= point[0] < 8 and 0 <= point[1] < 16:
+                    shadow.add(point)
+        pixels = image.load()
+        for x, y in shadow - foreground:
+            pixels[x, y] = 12
+        for x, y in foreground:
+            pixels[x, y] = 13
+        return image
+
+    cream = [big_label_glyph(char) for char in "CREAM"]
+    cream_top = b"".join(image_to_tiles(glyph.crop((0, 0, 8, 8))) for glyph in cream)
+    cream_bottom = b"".join(image_to_tiles(glyph.crop((0, 8, 8, 16))) for glyph in cream)
     number_one = native_art[0x75 * 32 : 0x76 * 32] + native_art[0x7F * 32 : 0x80 * 32]
     if len(number_one) != 2 * 32:
         raise RuntimeError("Native stage-number art is incomplete")
@@ -452,7 +517,8 @@ def write_stage_label_assets() -> None:
     # Keep the native spacing so the upper and lower halves use +$A as usual.
     art = (
         stage
-        + b"".join(image_to_tiles(tile) for tile in cream)
+        + cream_top
+        + cream_bottom
         + yellow_one[:32]
         + bytes(9 * 32)
         + yellow_one[32:]
