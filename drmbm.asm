@@ -2253,6 +2253,7 @@ BC_LevelIntro:
 	BFADEI	Pal_LevelIntroBG, Pal_GameIntroGrounder, 1, 0
 	BFADEI	Pal_GreenTealPuyos, Pal_GameIntroScratch, 2, 0
 	BFADEI	Pal_Black, Pal_GameIntroRobotnik, 3, 0
+	BRUN	LoadCreamFarmDialoguePalette
 	BWRITE	word_FF1122, 0
 	BDISABLE
 	BRUN	CheckFinalLevel
@@ -2269,7 +2270,17 @@ BC_LevelIntro:
 	BJMP	BC_OpponentScreen
 
 BC_LevelTransition:
+	; Hide the Cream farm completely before the board art and tilemaps replace
+	; it.  Without this fade/clear step, one frame mixed the farm map with the
+	; level graphics and produced a visibly corrupted transition screen.
+	BFADE	Pal_Black, 0, 0
+	BFADE	Pal_Black, 1, 0
+	BFADE	Pal_Black, 2, 0
+	BFADE	Pal_Black, 3, 0
 	BFADEW
+	BRUN	InitPalette_Safe
+	BRUN	ClearPlaneA
+	BRUN	ClearPlaneB
 	BFRMEND
 	BRUN	LoadLevelBGArt
 	BSFADE
@@ -2283,19 +2294,31 @@ BC_Level:
 	BRUN	InitActors
 	BPUYO	$2000,	ArtPuyo_LevelSprites
 	BPUYO	$A000,	ArtPuyo_LevelFonts	
+	BRUN	LoadCreamForestBoard
 	BSSTOP
 	BFADEW
-	BPAL	Pal_RedYellowPuyos, 0
-	BPAL	Pal_BluePurplePuyos, 1
-	BPAL	Pal_Characters_Puyo, 3	
-	BRUN	LoadLevelBGPal	
 	BWRITE	pressed_time, $802
 	BRUN	GenPuyoOrder
 	BFRMEND
 	BRUN	loc_3C00
 	BFRMEND
+	; loc_3C00 rebuilds the native battle maps.  Draw the forest afterwards so
+	; that queued work cannot restore the announcement portrait or stone board
+	; over the Dark Story background.
+	BRUN	DrawCreamForestBoard
+	; Keep every palette line black until both the native setup and the custom
+	; forest replacement are complete. Otherwise NEXT/SCORE sprites expose the
+	; native filler tile for several frames between the cutscene and the board.
+	BPAL	Pal_RedYellowPuyos, 0
+	BPAL	Pal_BluePurplePuyos, 1
+	BPAL	Pal_Characters_Puyo, 3
+	BRUN	LoadLevelBGPal
+	BFRMEND
 	BRUN	loc_6070
 	BRUN	Level_DrawSmallText
+	BFRMEND
+	BRUN	DrawStoryBattleStageOverlay
+	BRUN	DrawStoryBattleName
 	BDISABLE
 	BWRITE	pressed_time, $1003
 	BSFADE
@@ -2304,6 +2327,10 @@ BC_Level:
 	BFADE	Pal_Black, 2, 0
 	BFADE	Pal_Black, 3, 0
 	BFADEW
+	BRUN	RestoreCreamNativeBoardArt
+	; Let the queued native tile/map restore finish while the display is black.
+	; This prevents stale forest tiles from leaking into the result/menu screens.
+	BFRMEND
 	BRUN	InitPalette_Safe
 	BRUN	InitActors
 	BSSTOP
@@ -2317,8 +2344,37 @@ BC_Level:
 	BJTBLE
 
 BC_DarkStoryComplete:
-	BWRITE	story_route, 0
 	BRUN	DisableSHMode
+	BRUN	ClearScroll
+	BRUN	ClearPlaneA
+	BRUN	ClearPlaneB
+	BFRMEND
+	BVDP	1
+	BRUN	LoadCreamFarmTransition
+	BFRMEND
+	BFADE	Pal_Black, 0, 0
+	BFADE	Pal_Black, 1, 0
+	BFADE	Pal_CreamFarm, 2, 0
+	BFADE	Pal_Black, 3, 0
+	BFADEW
+	BDELAY	$50
+	BFADE	Pal_Black, 0, 4
+	BFADE	Pal_Black, 1, 4
+	BFADE	Pal_CreamFarmSunset, 2, 4
+	BFADEW
+	BDELAY	$28
+	BSFADE
+	BFADE	Pal_Black, 0, 0
+	BFADE	Pal_Black, 1, 0
+	BFADE	Pal_Black, 2, 0
+	BFADE	Pal_Black, 3, 0
+	BFADEW
+	BWRITE	story_route, 0
+	BRUN	InitPalette_Safe
+	BRUN	InitActors
+	; The sunset transition has just repopulated both planes.  Clear it a
+	; second time before the main menu queues its own maps, otherwise pieces
+	; of the farm survive behind SELECT A MODE after a Dark Story victory.
 	BRUN	ClearScroll
 	BRUN	ClearPlaneA
 	BRUN	ClearPlaneB
@@ -3149,8 +3205,24 @@ Pal_Arms:
 Pal_Cream:
 	incbin	"resources/palettes/line/new/Portrait - Cream.pal"
 
+; Cream's danger flash is a 25% blend toward white.  It preserves the facial
+; features and orange/blue colour separation instead of producing a solid
+; white silhouette.
+Pal_CreamFlash:
+	dc.w	$0644, $0CCC, $0CCE, $0CCC, $0CCC, $0CCC, $06AE, $04AE
+	dc.w	$0CCC, $08AC, $046A, $0644, $0644, $0E64, $0644, $04EE
+
 Pal_CreamIntro:
 	incbin	"resources/palettes/line/new/Cutscene - Cream.pal"
+
+Pal_CreamFarm:
+	incbin	"resources/palettes/line/new/Cutscene - Cream Farm.pal"
+
+Pal_CreamFarmSunset:
+	incbin	"resources/palettes/line/new/Cutscene - Cream Farm (Sunset).pal"
+
+Pal_CreamFarmAnnouncement:
+	incbin	"resources/palettes/line/new/Next Opponent - Cream Farm.pal"
 
 Pal_ArmsIntro:
 	incbin	"resources/palettes/line/new/Cutscene - Arms.pal"
@@ -3704,11 +3776,27 @@ loc_390E:
 
 
 PuyoLandEffects:
-	; Hard Mode gives the player the heavy landing effect in every stage.
+	; Story routes deliberately mirror one another: Dark Story gives the heavy
+	; landing to the controlled villain, while Hero Story gives it to every CPU
+	; villain.  This does not change either route's board graphics.
+	tst.b	(level_mode).l
+	bne.s	.CheckHardMode
+	tst.b	(story_route).l
+	beq.s	.HeroEnemy
+	tst.b	aPlayerID(a0)
+	beq.s	.StoryShake
+	bra.w	PlayPuyoLandSound
+
+.HeroEnemy:
+	tst.b	aPlayerID(a0)
+	bne.s	.StoryShake
+	bra.w	PlayPuyoLandSound
+
+.CheckHardMode:
 	tst.b	(hard_mode).l
 	beq.s	.CheckOriginalStages
 	tst.b	aPlayerID(a0)
-	beq.s	.Shake
+	beq.s	.StoryShake
 
 .CheckOriginalStages:
 	; Base game and CPU opponents retain the Frankly/Dragon-only behaviour.
@@ -3718,13 +3806,31 @@ PuyoLandEffects:
 	bne.w	PlayPuyoLandSound
 
 .Shake:
+	moveq	#0,d7
+	bra.s	.SpawnShake
+
+.StoryShake:
+	; Custom heavy landings move the scenery plane only. Shaking Plane A wraps
+	; score/name tiles into the playfield and caused the duplicated texture seen
+	; on the right side when controller 2 was active.
+	moveq	#1,d7
+
+.SpawnShake:
 	move.b	#SFX_PUYO_LAND_HARD,d0
 	jsr	(PlaySound_ChkPCM).l
-	movem.l	a1,-(sp)
+	movem.l	d7/a1,-(sp)
 	lea	(ActShakeField).l,a1
 	bsr.w	FindActorSlotQuick
 	bcs.w	loc_3974
 	move.w	#$400,aField38(a1)
+	move.b	d7,aField3A(a1)
+	tst.b	d7
+	beq.s	.AmplitudeReady
+	; Three pixels keep the heavy impact clearly visible while staying inside
+	; the safe wrapped rows of both the forest and original story boards.
+	move.w	#$300,aField38(a1)
+
+.AmplitudeReady:
 	; Shake the field belonging to the bean that just landed.
 	move.l	#(vscroll_buffer+4),aAnim(a1)
 	move.b	aPlayerID(a0),d0
@@ -3738,7 +3844,7 @@ PuyoLandEffects:
 	move.l	#(vscroll_buffer+$34),aAnim(a1)
 
 loc_3974:
-	movem.l	(sp)+,a1
+	movem.l	(sp)+,d7/a1
 	rts
 ; End of function PuyoLandEffects
 
@@ -3756,14 +3862,34 @@ loc_398A:
 	andi.b	#$7F,d0
 	bsr.w	Sin
 	swap	d2
+	tst.b	aField3A(a0)
+	beq.s	.ShakeActors
+	clr.w	(a1)+
+	move.w	d2,(a1)+
+	bra.s	.NextColumn
+
+.ShakeActors:
 	move.w	d2,(a1)+
 	clr.w	(a1)+
+
+.NextColumn:
 	addi.b	#$48,d0
 	dbf	d3,loc_398A
 	addi.b	#$28,aField36(a0)
 	subi.w	#$20,aField38(a0)
-	bcs.w	ActorDeleteSelf
+	bcs.s	.FinishShake
 	rts
+
+.FinishShake:
+	; Never leave a partial per-column scroll behind when several landing actors
+	; finish during the same defeat cascade.
+	movea.l	aAnim(a0),a1
+	moveq	#$B,d3
+
+.ClearScrollColumns:
+	clr.w	(a1)+
+	dbf	d3,.ClearScrollColumns
+	bra.w	ActorDeleteSelf
 ; End of function ActShakeField
 
 
@@ -6838,7 +6964,18 @@ GetPuyoTileID:
 	movem.l	d1-d4,-(sp)
 	move.w	#$83FE,d1
 	or.b	d0,d0
+	bne.s	.NotEmpty
+	; The custom forest board needs a truly blank Plane A cell.  The original
+	; tile $3FE contains visible filler once the defeat animation scrolls hidden
+	; field rows into view, producing the grey duplicate/striped rectangles.
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.w	loc_589E
+	tst.b	(story_route).l
 	beq.w	loc_589E
+	move.w	#$8080,d1
+	bra.w	loc_589E
+
+.NotEmpty:
 	move.w	#$8000,d1
 	clr.b	d1
 	clr.w	d2
@@ -10158,6 +10295,7 @@ loc_794E:
 	DISABLE_INTS
 	bsr.w	sub_5782
 	ENABLE_INTS
+	bsr.w	PrepareCreamDefeatHiddenRows
 	clr.w	d3
 	lea	(loc_833E).l,a1
 	bsr.w	FindActorSlot
@@ -11075,12 +11213,25 @@ loc_833E:
 
 loc_8354:
 	move.b	d0,8(a0)
+	; Plane command $84 draws the native crumbling board frames.  On the custom
+	; forest board those mappings are the grey/yellow duplicated blocks seen
+	; during the first and final frames, so retain the falling-column animation
+	; but leave Plane A's transparent cells untouched.
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.QueueNativeFrame
+	tst.b	(story_route).l
+	bne.s	.SkipNativeFrame
+
+.QueueNativeFrame:
 	movea.l	$2E(a0),a1
 	swap	d0
 	move.w	#$8400,d0
 	move.b	$2A(a1),d0
 	swap	d0
 	jmp	(QueuePlaneCmd).l
+
+.SkipNativeFrame:
+	rts
 ; ---------------------------------------------------------------------------
 
 loc_836E:
@@ -12711,7 +12862,7 @@ CheckPlayerPause:
 ; ---------------------------------------------------------------------------
 	
 PausePuyoField:
-	movem.l	d1-d2,-(sp)
+	movem.l	d1-d2/d4,-(sp)
 	bsr.w	GetSavedPuyoField
 	move.w	d0,d5
 	move.w	#$17,d1
@@ -12728,6 +12879,14 @@ loc_9206:
 	dbf	d1,loc_91F8
 	move.w	d0,d5
 	move.w	#$17,d1
+	move.w	#$8500,d4
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.MaskReady
+	tst.b	(story_route).l
+	beq.s	.MaskReady
+	move.w	#$8080,d4
+
+.MaskReady:
 
 loc_921C:
 	jsr	(SetVRAMWrite).l
@@ -12735,10 +12894,10 @@ loc_921C:
 	move.w	#$B,d2
 
 loc_922A:
-	move.w	#$8500,VDP_DATA
+	move.w	d4,VDP_DATA
 	dbf	d2,loc_922A
 	dbf	d1,loc_921C
-	movem.l	(sp)+,d1-d2
+	movem.l	(sp)+,d1-d2/d4
 	rts
 	
 ; ---------------------------------------------------------------------------
@@ -15482,6 +15641,259 @@ unk_A90A:	dc.b   7
 ; =============== S U B	R O U T	I N E =======================================
 
 
+LoadCreamFarmOpponentArtPalette:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.NotCreamRoute
+	tst.b	(story_route).l
+	beq.s	.NotCreamRoute
+	; Keep the native frame art at $8000.  The complete farm occupies the free
+	; $4000-$7FFF window, while Cream and the other preview portrait use the
+	; lower VRAM ranges.  This prevents all three assets from overlapping.
+	lea	(ArtNem_CreamFarm).l,a0
+	move.w	#$4000,d0
+	DISABLE_INTS
+	jsr	(NemDec).l
+	ENABLE_INTS
+	lea	(Pal_CreamFarmAnnouncement).l,a2
+	; Palette line 2 belongs to the native stone frames and is refreshed by
+	; the opponent screen.  Give the farm its own line so those green/yellow
+	; frame colours can never replace the dialogue-scene palette.
+	moveq	#3,d0
+	jmp	(LoadPalette).l
+
+.NotCreamRoute:
+	rts
+
+; =============== S U B	R O U T	I N E =======================================
+
+
+LoadCreamFarmDialoguePalette:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.NotCreamRoute
+	tst.b	(story_route).l
+	beq.s	.NotCreamRoute
+	lea	(Pal_CreamFarm).l,a2
+	moveq	#2,d0
+	moveq	#0,d1
+	jmp	(FadeToPalette).l
+
+.NotCreamRoute:
+	rts
+
+; =============== S U B	R O U T	I N E =======================================
+
+
+LoadCreamForestBoard:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.NotCreamRoute
+	tst.b	(story_route).l
+	beq.s	.NotCreamRoute
+	; LoadLevelBGArt has already installed the original board on both planes.
+	; Remove both maps before drawing the forest so no stone border, preview
+	; portrait, or grass tile can leak through the replacement background.
+	jsr	(ClearPlaneA).l
+	jsr	(ClearPlaneB).l
+	rts
+
+.NotCreamRoute:
+	rts
+
+; =============== S U B R O U T I N E =====================================
+
+
+DrawCreamForestBoard:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.w	.NotCreamRoute
+	tst.b	(story_route).l
+	beq.w	.NotCreamRoute
+	; Replace the unused native stone-board bank with 116 dedicated forest tiles.
+	; This is real pattern memory, not a plane table, so victory transitions and
+	; portrait animations cannot overwrite it with tilemap commands.
+	lea	(ArtNem_CreamForestBoard).l,a0
+	move.w	#$0000,d0
+	DISABLE_INTS
+	jsr	(NemDec).l
+	ENABLE_INTS
+	; Twelve dedicated UI tiles occupy the remainder of the same off-screen bank.
+	lea	(ArtNem_CreamForestUI).l,a0
+	move.w	#$0E80,d0
+	DISABLE_INTS
+	jsr	(NemDec).l
+	ENABLE_INTS
+
+	; Write the 40x32 forest map directly to Plane B. Avoiding the shared Enigma
+	; buffer keeps later portrait/text decompression from racing this background.
+	lea	(MapUnc_CreamForestBoard).l,a0
+	lea	(VDP_DATA).l,a1
+	DISABLE_INTS
+	; Tiles $080-$083 form the 2x2 blank Puyo cell and are reserved as genuinely
+	; transparent Plane A tiles. Clearing only $080 leaves the other three
+	; quadrants visible when the defeat animation scrolls field rows into view.
+	move.w	#$1000,d5
+	jsr	(SetVRAMWrite).l
+	move.w	#$3F,d6
+
+.ClearBlankTile:
+	move.w	#0,(a1)
+	dbf	d6,.ClearBlankTile
+
+	move.w	#$E000,d5
+	move.w	#$1F,d4
+
+.CopyRow:
+	jsr	(SetVRAMWrite).l
+	move.w	#$27,d6
+
+.CopyWord:
+	move.w	(a0)+,(a1)
+	dbf	d6,.CopyWord
+	addi.w	#$80,d5
+	dbf	d4,.CopyRow
+
+	; Plane A contains the live beans. The defeat animation scrolls each field
+	; through all 32 tile rows, not only the 24 visible rows. Clear the complete
+	; columns so hidden native-board tiles can never roll into view as grey bars.
+	move.w	#$C004,d5
+	move.w	#$1F,d4
+
+.ClearFieldRow:
+	jsr	(SetVRAMWrite).l
+	move.w	#$B,d6
+
+.ClearLeftField:
+	move.w	#$8080,(a1)
+	dbf	d6,.ClearLeftField
+	addi.w	#$30,d5
+	jsr	(SetVRAMWrite).l
+	move.w	#$B,d6
+
+.ClearRightField:
+	move.w	#$8080,(a1)
+	dbf	d6,.ClearRightField
+	addi.w	#$50,d5
+	dbf	d4,.ClearFieldRow
+
+	ENABLE_INTS
+
+.NotCreamRoute:
+	rts
+
+; =============== S U B R O U T I N E =====================================
+
+
+PrepareCreamDefeatHiddenRows:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.NotCreamRoute
+	tst.b	(story_route).l
+	beq.s	.NotCreamRoute
+	movem.l	d4-d6/a1,-(sp)
+	lea	(VDP_DATA).l,a1
+	DISABLE_INTS
+	; The native round setup clears rows 26-31 after the forest board has been
+	; installed.  These six hidden rows become visible only while the losing
+	; columns fall, so restore the custom transparent 2x2 cell immediately before
+	; that animation starts.
+	move.w	#$CD04,d5
+	moveq	#5,d4
+
+.ClearHiddenRow:
+	jsr	(SetVRAMWrite).l
+	move.w	#$B,d6
+
+.ClearHiddenLeft:
+	move.w	#$8080,(a1)
+	dbf	d6,.ClearHiddenLeft
+	addi.w	#$30,d5
+	jsr	(SetVRAMWrite).l
+	move.w	#$B,d6
+
+.ClearHiddenRight:
+	move.w	#$8080,(a1)
+	dbf	d6,.ClearHiddenRight
+	addi.w	#$50,d5
+	dbf	d4,.ClearHiddenRow
+	ENABLE_INTS
+	movem.l	(sp)+,d4-d6/a1
+
+.NotCreamRoute:
+	rts
+
+; =============== S U B	R O U T	I N E =======================================
+
+
+DrawStoryBattleName:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.NotStoryStageOne
+	tst.b	(story_route).l
+	beq.s	.HeroName
+	; Replace SCORE with the character name; the numeric score stays below.
+	lea	(.CreamText).l,a1
+	bra.s	.DrawName
+
+.HeroName:
+	; Hero Story retains the original board and Arms portrait, but identifies
+	; the opponent instead of leaving the generic SCORE heading behind.
+	lea	(.ArmsText).l,a1
+
+.DrawName:
+	move.w	#4,d0
+	move.w	#$80,d1
+	move.w	#$A500,d6
+	move.w	#$CA20,d5
+	DISABLE_INTS
+	jsr	(DrawSmallText).l
+	ENABLE_INTS
+
+.NotStoryStageOne:
+	rts
+
+.CreamText:
+	STAGE_TEXT	0, "CREAM"
+
+.ArmsText:
+	STAGE_TEXT	0, "ARMS "
+
+; =============== S U B	R O U T	I N E =======================================
+
+
+DrawStoryBattleStageOverlay:
+	; Redraw after Level_DrawSmallText so the standard white STAGE label cannot
+	; overwrite the route-specific blue/yellow presentation.
+	tst.b	(story_route).l
+	bne.s	.DarkStory
+	DISABLE_INTS
+	jsr	(DrawHeroBattleStageText).l
+	ENABLE_INTS
+	rts
+
+.DarkStory:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.Done
+	DISABLE_INTS
+	jsr	(DrawCreamBattleStageText).l
+	ENABLE_INTS
+
+.Done:
+	rts
+
+; =============== S U B	R O U T	I N E =======================================
+
+
+RestoreCreamNativeBoardArt:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.NotCreamRoute
+	tst.b	(story_route).l
+	beq.s	.NotCreamRoute
+	; The result panel is finished and the screen is black. Restore the native
+	; $0000-$1FFF bank before the ending/menu scenes reuse those tile numbers.
+	jmp	(LoadLevelBGArt).l
+
+.NotCreamRoute:
+	rts
+
+; =============== S U B	R O U T	I N E =======================================
+
+
 LoadOpponentIntro:
 	clr.b	(cream_dialogue_active).l
 	clr.l	d0
@@ -16585,6 +16997,13 @@ loc_B0F4:
 ; ---------------------------------------------------------------------------
 
 loc_B102:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.StandardBackgroundPalettes
+	tst.b	(story_route).l
+	beq.s	.StandardBackgroundPalettes
+	bra.s	.CreamOpponentPalette
+
+.StandardBackgroundPalettes:
 	move.b	#1,d0
 	move.b	#0,d1
 	lea	(Palette_Table).l,a2
@@ -16594,6 +17013,8 @@ loc_B102:
 	bne.s	.StandardOpponentPalette
 	tst.b	(story_route).l
 	beq.s	.StandardOpponentPalette
+
+.CreamOpponentPalette:
 	lea	(Pal_CreamIntro).l,a2
 	bra.s	.OpponentPaletteReady
 
@@ -16639,7 +17060,7 @@ loc_B152:
 	ori.b	#3,d0
 	move.b	d0,(vdp_reg_b).l
 	lea	(loc_B1AC).l,a1
-	bsr.w	FindActorSlot
+	jsr	(FindActorSlot).l
 	bcs.w	locret_B1AA
 	move.l	a1,(dword_FF112C).l
 	move.l	#-$10000,$E(a1)
@@ -16671,7 +17092,10 @@ loc_B1BE:
 	move.w	(vscroll_buffer+2).l,d1
 	subi.w	#$FF60,d1
 	cmpi.w	#$58,d1
-	bcc.w	ActorDeleteSelf
+	bcs.s	.KeepActor
+	jmp	(ActorDeleteSelf).l
+
+.KeepActor:
 	subq.w	#1,d1
 	bcs.w	loc_B1F8
 
@@ -20340,6 +20764,14 @@ word_D4B0:
 
 
 DrawOpponentScrBoxes:
+	; Cream's farm announcement uses clean portrait panels over the new scene.
+	; Do not stamp the original stone surround on top of that background.
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.StandardBoxes
+	tst.b	(story_route).l
+	bne.w	.NoBoxes
+
+.StandardBoxes:
 	clr.w	d0
 	move.b	(level).l,d0
 	add.w	d0,d0
@@ -20391,6 +20823,9 @@ DrawOpponentScrBoxes:
 	dbf	d1,.DrawBoxes
 	ENABLE_INTS
 	rts
+
+.NoBoxes:
+	rts
 ; End of function DrawOpponentScrBoxes
 
 ; ---------------------------------------------------------------------------
@@ -20420,6 +20855,27 @@ MapEni_OpponentScrBox:
 
 
 DrawOpponentScrBG:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.StandardBackground
+	tst.b	(story_route).l
+	beq.s	.StandardBackground
+	; Draw only the visible 40x28 area.  The earlier 64x32 experiment filled
+	; the entire 4 KiB map buffer and was too expensive for a single VBlank.
+	; This smaller map fits safely and displays the farm as one coherent scene.
+	lea	(MapEni_CreamFarm).l,a0
+	; Plane B is displayed with the opponent screen's native -120 px scroll.
+	; Store the farm 15 tiles to the right so its 320-pixel viewport begins at
+	; the actual left edge of the screen instead of leaving a grey area at right.
+	lea	($E01E).l,a1
+	move.w	#$E200,d0	; Priority + dedicated palette line 3 + tile $200.
+	move.w	#$27,d1
+	move.w	#$1B,d2
+	DISABLE_INTS
+	jsr	(EniDec).l
+	ENABLE_INTS
+	rts
+
+.StandardBackground:
 	clr.w	d0
 	move.b	(level).l,d0
 	add.w	d0,d0
@@ -20487,6 +20943,7 @@ Level_DrawSmallText:
 SpawnOpponentScrActors:
 	jsr	(EnableSHMode).l
 	bsr.w	DisableLineHScroll
+	bsr.w	LoadCreamFarmOpponentArtPalette
 	lea	(ActOpponentScr).l,a1
 	jsr	(FindActorSlot).l
 	bcc.w	.Spawned
@@ -20668,6 +21125,15 @@ loc_D7A0:
 	move.b	(level).l,d0
 	add.w	d0,d0
 	move.w	word_D7F8(pc,d0.w),d0
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.PreviewListReady
+	tst.b	(story_route).l
+	beq.s	.PreviewListReady
+	; Dark Story stage one reveals Cream only.  Keep the following opponent
+	; hidden and centre Cream between the two native preview positions.
+	move.w	#$0300,d0
+
+.PreviewListReady:
 	move.w	d0,aField2C(a1)
 	move.w	#$CA08,aField26(a1)
 	move.w	d0,d5
@@ -24073,9 +24539,36 @@ LoadLevelIntroArt:
 ; ---------------------------------------------------------------------------
 
 loc_F5CE:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.StandardOutsideArt
+	tst.b	(story_route).l
+	beq.s	.StandardOutsideArt
+	lea	(ArtNem_CreamFarm).l,a0
+	move.w	#$2000,d0
+	bra.w	NemDec_Safe
+
+.StandardOutsideArt:
 	lea	(ArtNem_LvlIntroBG).l,a0
 	move.w	#$2000,d0
 	bra.w	NemDec_Safe
+
+; ---------------------------------------------------------------------------
+
+LoadCreamFarmTransition:
+	lea	(ArtNem_CreamFarm).l,a0
+	move.w	#$2000,d0
+	DISABLE_INTS
+	jsr	(NemDec).l
+	ENABLE_INTS
+	lea	(MapEni_CreamFarm).l,a0
+	lea	($C000).l,a1
+	move.w	#$4100,d0
+	move.w	#$27,d1
+	move.w	#$1B,d2
+	DISABLE_INTS
+	jsr	(EniDec).l
+	ENABLE_INTS
+	rts
 
 ; =============== S U B	R O U T	I N E =======================================
 
@@ -24108,6 +24601,15 @@ loc_F5FE:
 
 loc_F602:
 	lea	($D200).l,a1
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.StandardOutsideMap
+	tst.b	(story_route).l
+	beq.s	.StandardOutsideMap
+	lea	(MapEni_CreamFarm).l,a0
+	move.w	#$4100,d0
+	bra.s	.IntroBGPriorityReady
+
+.StandardOutsideMap:
 	lea	(MapEni_LvlIntroBG_0).l,a0
 	move.w	#$8100,d0
 	; Cream's dialogue uses high-priority Plane A tiles. Lower the stage-one
@@ -24467,6 +24969,12 @@ sub_F8F4:
 loc_F8FC:
 	tst.b	(use_lair_background).l
 	bne.w	loc_F952
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.StandardOutsideActor
+	tst.b	(story_route).l
+	bne.s	locret_F940
+
+.StandardOutsideActor:
 	lea	(loc_F942).l,a1
 	jsr	(FindActorSlot).l
 	bcs.s	locret_F940
@@ -30154,7 +30662,36 @@ DrawActors:
 	lsl.w	#2,d1
 	move.w	d1,sprite_count
 	not.w	draw_order
+	bsr.w	RefreshCreamBattlePortraitPalette
 
+	rts
+
+; Keep Cream's dedicated portrait colours isolated from the native chain-effect
+; palette cyclers.  Stop refreshing as soon as either field is defeated so the
+; result and menu screens can install their own palettes normally.
+RefreshCreamBattlePortraitPalette:
+	tst.b	(story_route).l
+	beq.s	.NotCreamBattle
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.NotCreamBattle
+	move.b	(player_1_flags).l,d0
+	and.b	(player_2_flags).l,d0
+	beq.s	.NotCreamBattle
+	lea	(Pal_Cream).l,a2
+	; Preserve the original danger feedback. While Cream's Dark Story CPU
+	; portrait is stressed, alternate its native colours with a translucent-
+	; looking light palette instead of hiding the drawing behind solid white.
+	cmpi.w	#2,(word_FF198C).l
+	bne.s	.LoadPortraitPalette
+	btst	#4,(frame_count+1).l
+	beq.s	.LoadPortraitPalette
+	lea	(Pal_CreamFlash).l,a2
+
+.LoadPortraitPalette:
+	moveq	#3,d0
+	jmp	(LoadPalette).l
+
+.NotCreamBattle:
 	rts
 
 ; --------------------------------------------------------------
@@ -30234,10 +30771,28 @@ DrawActorSprite:
 	subq.w	#1,d2
 
 .DrawPieces:
+	; Omit palette-3 shadow helpers only from the five coloured Puyo mappings on
+	; Cream's bright board. Mapping 2 and mapping 6 contain the visible garbage
+	; and obstacle sprites, so filtering those made black rocks disappear.
+	tst.b	(story_route).l
+	beq.s	.DrawPiece
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.DrawPiece
+	cmpi.b	#5,aMappings(a0)
+	bhi.s	.DrawPiece
+	cmpi.b	#2,aMappings(a0)
+	beq.s	.DrawPiece
+	move.w	4(a3),d3
+	andi.w	#$6000,d3
+	cmpi.w	#$6000,d3
+	beq.s	.NextPiece
+
+.DrawPiece:
 	movem.l	a3,-(sp)
 	bsr.w	DrawActorSpritePiece
 	movem.l	(sp)+,a3
 
+.NextPiece:
 	adda.l	#8,a3
 	dbf	d2,.DrawPieces
 
@@ -30271,6 +30826,29 @@ DrawActorSpritePiece:
 	adda.l	#1,a1
 	move.b	(a3)+,(a4)+
 	move.w	(a3)+,d3
+	; Keep Puyo bodies at full brightness while native shadow/highlight remains
+	; enabled for chain effects. Their palette-3 helper piece is filtered above.
+	tst.b	(story_route).l
+	beq.s	.PuyoPriorityDone
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.PuyoPriorityDone
+	cmpi.b	#5,aMappings(a0)
+	bhi.s	.CheckFallingGarbage
+	ori.w	#$8000,d3
+	bra.s	.PuyoPriorityDone
+
+.CheckFallingGarbage:
+	; Incoming garbage columns use mapping 6, frames $14-$18. Their settled
+	; Plane A tiles were visible, but these falling sprites remained behind the
+	; high-priority forest scenery. Raise only those animation frames.
+	cmpi.b	#6,aMappings(a0)
+	bne.s	.PuyoPriorityDone
+	cmpi.b	#$14,aFrame(a0)
+	bcs.s	.PuyoPriorityDone
+	cmpi.b	#$18,aFrame(a0)
+	bhi.s	.PuyoPriorityDone
+	ori.w	#$8000,d3
+.PuyoPriorityDone:
 	; Dialogue text uses high-priority plane tiles. Lower cutscene sprites while
 	; Cream is speaking so tall pieces cannot cover the letters. Keep Cream
 	; herself at normal priority so her animated portrait never disappears.
@@ -37268,6 +37846,58 @@ word_1A146:	dc.w $C1EB
 ; ---------------------------------------------------------------------------
 
 SpecPlane9A:
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.w	.StandardNames
+	tst.b	(story_route).l
+	beq.s	.HeroNames
+	; Dark Story stage one: Arms is controlled by the player and Cream is the
+	; opponent. Both names use the compact battle font and fit on one line.
+	lea	(Str_ArmsBattle).l,a1
+	move.w	#3,d0
+	move.w	#$A500,d6
+	move.w	#$C21E,d5
+	tst.b	(swap_controls).l
+	beq.s	.ArmsPositionReady
+	move.w	#$C22A,d5
+
+.ArmsPositionReady:
+	bsr.w	DrawSmallText
+	lea	(Str_CreamBattle).l,a1
+	move.w	#4,d0
+	move.w	#$C500,d6
+	move.w	#$C21E,d5
+	tst.b	(swap_controls).l
+	bne.s	.CreamPositionReady
+	move.w	#$C22A,d5
+
+.CreamPositionReady:
+	bra.w	DrawSmallText
+
+.HeroNames:
+	; Hero Story mirrors the roles and colours: Cream is the blue player name,
+	; while Arms is the green CPU opponent. Controller 2 remains supported.
+	lea	(Str_CreamBattle).l,a1
+	move.w	#4,d0
+	move.w	#$A500,d6
+	move.w	#$C21E,d5
+	tst.b	(swap_controls).l
+	beq.s	.HeroCreamPositionReady
+	move.w	#$C22A,d5
+
+.HeroCreamPositionReady:
+	bsr.w	DrawSmallText
+	lea	(Str_ArmsBattle).l,a1
+	move.w	#3,d0
+	move.w	#$C500,d6
+	move.w	#$C21E,d5
+	tst.b	(swap_controls).l
+	bne.s	.HeroArmsPositionReady
+	move.w	#$C22A,d5
+
+.HeroArmsPositionReady:
+	bra.w	DrawSmallText
+
+.StandardNames:
 	lea	(Str_1P).l,a1    ; DEMO Text	
 	move.w	#3,d0
 	move.w	#$A500,d6
@@ -37300,6 +37930,12 @@ Str_1P:
 Str_DrR:
 	include	"resources/text/Stage/Scenario 2P.asm"
 	even
+
+Str_ArmsBattle:
+	STAGE_TEXT	0, "ARMS"
+
+Str_CreamBattle:
+	STAGE_TEXT	0, "CREAM"
 		
 ; ---------------------------------------------------------------------------
 
@@ -37590,6 +38226,18 @@ loc_1A3F6:
 
 SpecPlane97:
 	bsr.w	GetStageText
+	cmpi.b	#OPP_ARMS,(opponent).l
+	bne.s	.StandardStage
+	tst.b	(story_route).l
+	beq.s	.HeroStage
+	bsr.w	DrawCreamBattleStageText
+	rts
+
+.HeroStage:
+	bsr.w	DrawHeroBattleStageText
+	rts
+
+.StandardStage:
 	bsr.w	DrawStageText
 	bsr.w	DrawBGUnderStageText
 	rts
@@ -37655,6 +38303,82 @@ DrawStageText:
 	move.w	#7,d0
 	lea	(stage_text_buffer).l,a1
 	bra.w	DrawSmallText
+; ---------------------------------------------------------------------------
+
+DrawCreamBattleStageText:
+	; Use dedicated coloured glyphs and no backing plaque, so the forest remains
+	; visible behind a genuinely blue STAGE and yellow stage number.
+	lea	(.Tilemap).l,a0
+	lea	(VDP_DATA).l,a1
+	move.w	#$C520,d5
+	moveq	#1,d4
+
+.Row:
+	jsr	(SetVRAMWrite).l
+	moveq	#6,d6
+
+.Tile:
+	move.w	(a0)+,(a1)
+	dbf	d6,.Tile
+	addi.w	#$80,d5
+	dbf	d4,.Row
+	rts
+
+.Tilemap:
+	dc.w $A074, $A076, $A078, $A07A, $A07C, 0, $807E
+	dc.w $A075, $A077, $A079, $A07B, $A07D, 0, $807F
+; ---------------------------------------------------------------------------
+
+DrawHeroBattleStageText:
+	; Keep Hero Story's native board art intact. The existing battle font is
+	; recoloured instead: blue STAGE lettering and a yellow stage number, with
+	; no backing plaque covering the original scenery.
+	lea	(.StageLabel).l,a1
+	move.w	#$C520,d5
+	move.w	#$A500,d6
+	moveq	#4,d0
+	bsr.w	DrawSmallText
+
+	moveq	#0,d0
+	move.b	(level).l,d0
+	subq.w	#3,d0
+	bpl.s	.StageAtLeastOne
+	moveq	#0,d0
+
+.StageAtLeastOne:
+	cmpi.w	#12,d0
+	bls.s	.StageInRange
+	moveq	#12,d0
+
+.StageInRange:
+	lsl.w	#2,d0
+	lea	(.StageNumbers).l,a0
+	movea.l	(a0,d0.w),a1
+	move.w	#$C52C,d5
+	move.w	#$8500,d6
+	moveq	#1,d0
+	bra.w	DrawSmallText
+
+.StageLabel:
+	STAGE_TEXT	0, "STAGE"
+
+.StageNumbers:
+	dc.l	.Stage1, .Stage2, .Stage3, .Stage4, .Stage5, .Stage6, .Stage7
+	dc.l	.Stage8, .Stage9, .Stage10, .Stage11, .Stage12, .Stage13
+
+.Stage1:	STAGE_TEXT	0, "1 "
+.Stage2:	STAGE_TEXT	0, "2 "
+.Stage3:	STAGE_TEXT	0, "3 "
+.Stage4:	STAGE_TEXT	0, "4 "
+.Stage5:	STAGE_TEXT	0, "5 "
+.Stage6:	STAGE_TEXT	0, "6 "
+.Stage7:	STAGE_TEXT	0, "7 "
+.Stage8:	STAGE_TEXT	0, "8 "
+.Stage9:	STAGE_TEXT	0, "9 "
+.Stage10:	STAGE_TEXT	0, "10"
+.Stage11:	STAGE_TEXT	0, "11"
+.Stage12:	STAGE_TEXT	0, "12"
+.Stage13:	STAGE_TEXT	0, "13"
 ; ---------------------------------------------------------------------------
 
 DrawBGUnderStageText: ; Story Under Tiles
@@ -46638,6 +47362,30 @@ MapEni_LvlIntroBG_1:
 		
 MapEni_LvlIntroBG_2:	
 	incbin	"resources/mappings/background/map_eni/compressed/Cutscene - Outside - Mountains.eni"
+	even
+
+ArtNem_CreamFarm:
+	incbin	"resources/art/art_nem/compressed/Cutscene - Cream Farm.nem"
+	even
+
+MapEni_CreamFarm:
+	incbin	"resources/mappings/background/map_eni/compressed/Cutscene - Cream Farm.eni"
+	even
+
+ArtNem_CreamFarmOpponent:
+	incbin	"resources/art/art_nem/compressed/Next Opponent - Cream Farm.nem"
+	even
+
+ArtNem_CreamForestBoard:
+	incbin	"resources/art/art_nem/compressed/Board - Cream Forest.nem"
+	even
+
+ArtNem_CreamForestUI:
+	incbin	"resources/art/art_nem/compressed/Board - Cream Forest UI.nem"
+	even
+
+MapUnc_CreamForestBoard:
+	incbin	"resources/mappings/background/map_eni/uncompressed/Board - Cream Forest.map"
 	even
 	
 ; ---------------------------------------------------------------------------

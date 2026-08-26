@@ -103,7 +103,7 @@ def prepare_image():
         for column, pixel in enumerate(pixels):
             if pixel == "#":
                 draw.point((six_x + column, 139 + row), fill=white)
-    centred("VERSION 0.2", 149)
+    centred("VERSION 0.3", 149)
     return canvas
 
 

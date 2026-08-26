@@ -2,6 +2,32 @@
 
 All notable changes to *Dr. Robotnik's Mean Bean Machine — Hard Mode* are documented here.
 
+## [v0.3] — 2026-08-26
+
+Version 0.3 gives Dark Story Stage 1 its own environment and improves the presentation and reliability of both story routes.
+
+### Major additions
+
+- Added a dedicated **Cream farm** environment shared by the stage announcement and dialogue scenes.
+- Added a custom **forest-and-carrot battle board** with dedicated tiles, palette, transparent playfields, and thin borders.
+- Added a farm **sunset transition** after completing Dark Story Stage 1.
+- Added route-aware battle presentation: Dark Story identifies **Arms** as the player and **Cream** as the opponent, while Hero Story mirrors those roles.
+
+### Minor additions
+
+- Added route-specific blue and green character labels plus the blue **STAGE** label and yellow stage number.
+- Added visible animated black garbage rocks and refined the heavy landing shake for the correct side in each story.
+- Refined Cream's danger flash so her expression remains visible beneath the effect.
+- Improved forest visibility while keeping the playfields easy to read.
+
+### Fixes affecting v0.2 features
+
+- Fixed the post-dialogue handoff briefly exposing temporary tile data before the battle appeared.
+- Fixed story-route names, combo voices, and heavy landing effects when the active controller or route changed.
+- Fixed Cream's v0.2 portrait reactions becoming corrupted or obscured during danger and result effects.
+- Fixed story victory and defeat transitions corrupting the board or the following mode-selection screen.
+- Fixed a duplicated texture appearing on the right side of the original Hero Story board.
+
 ## [v0.2] — 2026-08-19
 
 Version 0.2 expands the v0.1 Hard Mode release with the first playable New Story content, a redesigned title presentation, new character animation, and a large set of visual, control, and routing fixes.
@@ -68,5 +94,6 @@ Version 0.2 expands the v0.1 Hard Mode release with the first playable New Story
 - Introduced the optional Hard Mode feature set.
 - Added enhanced AI chain planning, randomized difficulty profiles, score preservation, heavy player landings, and combo voice changes.
 
+[v0.3]: https://github.com/AzurikPerathia/drmbm-new-story/compare/v0.2...v0.3
 [v0.2]: https://github.com/AzurikPerathia/drmbm-new-story/compare/v0.1...v0.2
 [v0.1]: https://github.com/AzurikPerathia/drmbm-new-story/releases/tag/v0.1

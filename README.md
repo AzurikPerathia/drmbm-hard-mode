@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/AzurikPerathia/drmbm-new-story/releases/tag/v0.2"><strong>Download v0.2</strong></a>
+  <a href="https://github.com/AzurikPerathia/drmbm-new-story/releases/tag/v0.3"><strong>Download v0.3</strong></a>
   ·
   <a href="CHANGELOG.md">Read the changelog</a>
   ·
@@ -33,7 +33,7 @@ This project expands *Dr. Robotnik's Mean Bean Machine* with a much more demandi
 
 The Scenario menu also includes an early **Hero Story / Dark Story** prototype. Hero Story preserves the original campaign against Robotnik's forces, while Dark Story begins a new route against Sonic's friends.
 
-Version **0.2** adds the first playable Dark Story stage against Cream, a fully customized animated introduction, a redesigned *New Story* title screen, story-specific combo voices, and extensive visual and control fixes. See [CHANGELOG.md](CHANGELOG.md) for the complete list of changes and fixes since v0.1.
+Version **0.3** gives the first Dark Story stage a complete visual identity: a farm setting for the encounter and dialogue, a dedicated forest battle board, and a sunset transition after victory. It also refines story-specific names, effects, obstacle visibility, and route presentation. See [CHANGELOG.md](CHANGELOG.md) for the concise list of changes since v0.2.
 
 A new **HARD MODE** option appears directly above **VS.COM LEVEL** in the Options menu. It is disabled by default and saved alongside the other game settings.
 
@@ -44,8 +44,8 @@ A new **HARD MODE** option appears directly above **VS.COM LEVEL** in the Option
 
 Choose **SCENARIO**, then **START**, to open the new route selector:
 
-- **DARK STORY** — a new route opposing Sonic's friends. The current prototype contains one stage against Cream and returns to the menu after victory.
-- **HERO STORY** — the complete original campaign against Robotnik and his villains, unchanged.
+- **DARK STORY** — a new route opposing Sonic's friends. Its first stage now follows Arms from Cream's farm to a dedicated forest battle board.
+- **HERO STORY** — the complete original campaign against Robotnik and his villains, with route-specific battle labels and effects.
 
 Cream now has an original animated introduction with several expressive poses. Her custom in-game portrait blinks, moves her ears, becomes visibly cheerful while winning, alternates between worried and stressed expressions near defeat, and shows a dedicated disgusted reaction after losing. The Dark Story stage card identifies **CREAM** beneath a blue **STAGE** label and a yellow stage number. The original neutral artwork and animation reference were supplied by AzurikPerathia and converted into native Mega Drive tiles, mappings, palettes, and animation scripts for this project.
 
@@ -53,7 +53,7 @@ The dialogue presentation uses explicit layering: scenery remains behind the dia
 
 ### New Story title screen
 
-Version 0.2 replaces the old presentation with a native Mega Drive conversion of the *Mean Bean Machine: New Story* logo. The screen includes subtle logo movement, a blinking **PRESS START** prompt, title music, the credit **AZURIK PERATHIA - 2026**, and the final version number. Starting the game now proceeds directly to the mode selector instead of displaying the legacy second title screen.
+Introduced in version 0.2, the title presentation uses a native Mega Drive conversion of the *Mean Bean Machine: New Story* logo. The screen includes subtle logo movement, a blinking **PRESS START** prompt, title music, the credit **AZURIK PERATHIA - 2026**, and the current version number. Starting the game proceeds directly to the mode selector instead of displaying the legacy second title screen.
 
 ## Hard Mode
 
@@ -96,10 +96,10 @@ The player's beans trigger the heavy landing sound and board shake in every stag
 
 The latest prebuilt ROM is available from the [GitHub Releases page](https://github.com/AzurikPerathia/drmbm-new-story/releases/latest).
 
-For version `v0.2`:
+For version `v0.3`:
 
 - ROM size: **1 MiB**
-- SHA-256: `4D1EAEC1F93EF20DA78E681362E84E29A24F033D648878516AE0E8D78BA2454F`
+- SHA-256: `F4DA30D450FB6B3D6679657ABB305B7555ADE8029B834F491B1AE5A0E7B64C3A`
 
 Use the ROM with a compatible Sega Mega Drive / Genesis emulator or suitable original hardware setup. HARD MODE can be enabled from the in-game Options menu.
 

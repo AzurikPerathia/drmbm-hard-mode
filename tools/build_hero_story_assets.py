@@ -242,7 +242,9 @@ def build_tile_pool(images: list[Image.Image]) -> tuple[bytes, list[list[int]]]:
                     lookup.setdefault(flipped(tile, True, False), tile_id | 0x0800)
                     lookup.setdefault(flipped(tile, False, True), tile_id | 0x1000)
                     lookup.setdefault(flipped(tile, True, True), tile_id | 0x1800)
-                mapping.append(tile_id)
+                # Cream's portrait must remain fully lit while the native
+                # shadow/highlight mode handles chain effects elsewhere.
+                mapping.append(tile_id | 0x8000)
         maps.append(mapping)
     return b"".join(pool), maps
 
