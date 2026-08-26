@@ -1,9 +1,11 @@
-<h1 align="center">Dr. Robotnik's Mean Bean Machine — Hard Mode</h1>
+<h1 align="center">Dr. Robotnik's Mean Bean Machine — New Story</h1>
+
+<img width="1279" height="958" alt="2026-08-19_071241" src="https://github.com/user-attachments/assets/8e22164d-e2fc-4f0d-b418-880021f3e344" />
 
 <p align="center"><strong>A configurable challenge expansion for the Sega Mega Drive / Genesis game</strong></p>
 
 <p align="center">
-  <strong>Hard Mode mod created by <a href="https://github.com/AzurikPerathia">Azurik Perathia</a></strong>
+  <strong>New Story mod created by <a href="https://github.com/AzurikPerathia">Azurik Perathia</a></strong>
 </p>
 
 <p align="center">
@@ -40,6 +42,8 @@ A new **HARD MODE** option appears directly above **VS.COM LEVEL** in the Option
 - **HARD MODE: OFF** — restores the original gameplay behavior.
 - **HARD MODE: ON** — enables every enhancement included in this project.
 
+<img width="1276" height="957" alt="2026-08-18_223142" src="https://github.com/user-attachments/assets/577d6daf-7af5-4c08-9190-e2463e63338f" />
+
 ## Story modes
 
 Choose **SCENARIO**, then **START**, to open the new route selector:
@@ -47,9 +51,16 @@ Choose **SCENARIO**, then **START**, to open the new route selector:
 - **DARK STORY** — a new route opposing Sonic's friends. Its first stage now follows Arms from Cream's farm to a dedicated forest battle board.
 - **HERO STORY** — the complete original campaign against Robotnik and his villains, with route-specific battle labels and effects.
 
+<img width="1255" height="942" alt="2026-08-19_022620" src="https://github.com/user-attachments/assets/9e52fa75-c500-49b1-a1ff-a76bda2e08cc" />
+
+
 Cream now has an original animated introduction with several expressive poses. Her custom in-game portrait blinks, moves her ears, becomes visibly cheerful while winning, alternates between worried and stressed expressions near defeat, and shows a dedicated disgusted reaction after losing. The Dark Story stage card identifies **CREAM** beneath a blue **STAGE** label and a yellow stage number. The original neutral artwork and animation reference were supplied by AzurikPerathia and converted into native Mega Drive tiles, mappings, palettes, and animation scripts for this project.
 
+<img width="1285" height="963" alt="2026-08-19_071313" src="https://github.com/user-attachments/assets/b08f51df-9027-4c9a-9ffa-57f918e4f518" />
+
 The dialogue presentation uses explicit layering: scenery remains behind the dialogue box, while Cream—the active speaker—stays in front. Both controllers can operate the mode selector.
+
+<img width="1278" height="958" alt="2026-08-19_072133" src="https://github.com/user-attachments/assets/64fcc33b-709d-46a0-a179-f76d8440f775" />
 
 ### New Story title screen
 
